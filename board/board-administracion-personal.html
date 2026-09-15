@@ -1,0 +1,1953 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Board de Administración de Personal — Cdo FDR / Ejercicio ARANDÚ 26</title>
+<style>
+/* ============================================================
+   BOARD DE ADMINISTRACION DE PERSONAL
+   Aplicacion 100% local / offline / portable (pen drive).
+   Sin dependencias externas, sin CDN, sin internet.
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  --bg:#eceee9; --panel:#ffffff; --panel2:#f6f7f4; --ink:#16211c; --muted:#5d6a62;
+  --line:#d5dbd3; --line2:#e8ece6;
+  --accent:#3f5c3a; --accent-ink:#ffffff; --accent-soft:#e6ede3;
+  --navy:#2f4858; --ok:#2e7d32; --warn:#b07d16; --bad:#a33227; --info:#2d6a8f;
+  --shadow:0 1px 2px rgba(20,32,26,.06),0 4px 14px rgba(20,32,26,.07);
+  --r:10px; --r2:14px;
+  --f:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --fm:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+html[data-tema="oscuro"]{
+  --bg:#121815; --panel:#1a221e; --panel2:#212b26; --ink:#e6ece7; --muted:#9aa8a0;
+  --line:#2d3934; --line2:#243029;
+  --accent:#7ba05b; --accent-ink:#0f1512; --accent-soft:#23301f;
+  --navy:#7fa8c0; --ok:#6fbf73; --warn:#d7a33c; --bad:#e07a6d; --info:#6bb0d8;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.35);
+}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:14px;line-height:1.45;-webkit-text-size-adjust:100%}
+h1,h2,h3,h4{margin:0;font-weight:650;letter-spacing:-.01em}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--info)}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px;border:3px solid var(--bg)}
+
+/* ---------- Barra superior ---------- */
+.top{position:sticky;top:0;z-index:60;background:var(--panel);border-bottom:1px solid var(--line);
+     display:flex;align-items:center;gap:14px;padding:9px 16px;box-shadow:var(--shadow)}
+.top .escudo{width:38px;height:38px;object-fit:contain;flex:0 0 auto}
+html[data-tema="oscuro"] .top .escudo{filter:invert(1) brightness(1.4)}
+.top .id{min-width:0}
+.top .id b{display:block;font-size:14px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .id span{display:block;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav{display:flex;gap:2px;margin-left:auto;flex-wrap:wrap}
+.nav button{background:transparent;border:1px solid transparent;border-radius:8px;padding:7px 13px;cursor:pointer;
+            font-weight:560;color:var(--muted)}
+.nav button:hover{background:var(--panel2);color:var(--ink)}
+.nav button[aria-current="page"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.top .util{display:flex;gap:6px;align-items:center}
+
+/* ---------- Botones ---------- */
+.btn{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);
+     border-radius:8px;padding:7px 12px;cursor:pointer;font-weight:560;white-space:nowrap}
+.btn:hover{background:var(--panel2);border-color:var(--muted)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--bad);border-color:var(--line)}
+.btn.danger:hover{background:var(--bad);color:#fff;border-color:var(--bad)}
+.btn.sm{padding:4px 9px;font-size:12.5px;border-radius:7px}
+.btn.icon{padding:6px 8px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ---------- Contenedores ---------- */
+.wrap{max-width:1380px;margin:0 auto;padding:18px 16px 70px}
+.vista{display:none}
+.vista.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);box-shadow:var(--shadow)}
+.card>.hd{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line2)}
+.card>.hd h3{font-size:14.5px}
+.card>.hd .sub{font-size:12px;color:var(--muted);margin-left:auto}
+.card>.bd{padding:16px}
+.grid{display:grid;gap:14px}
+.sec-tit{display:flex;align-items:baseline;gap:10px;margin:22px 0 10px}
+.sec-tit h2{font-size:17px}
+.sec-tit p{margin:0;font-size:12.5px;color:var(--muted)}
+
+/* ---------- KPIs ---------- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:13px 15px;box-shadow:var(--shadow)}
+.kpi .n{font-size:29px;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums}
+.kpi .t{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
+.kpi .d{font-size:12px;margin-top:6px;color:var(--muted)}
+.kpi.ok .n{color:var(--ok)} .kpi.warn .n{color:var(--warn)} .kpi.bad .n{color:var(--bad)} .kpi.info .n{color:var(--info)}
+
+/* ---------- Graficos ---------- */
+.barras{display:flex;flex-direction:column;gap:9px}
+.barra{display:grid;grid-template-columns:132px 1fr 46px;align-items:center;gap:10px}
+.barra .et{font-size:12.5px;color:var(--muted);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.barra .pista{display:block;height:15px;background:var(--panel2);border-radius:5px;overflow:hidden;border:1px solid var(--line2)}
+.barra .fill{display:block;height:100%;border-radius:4px;background:var(--accent);transition:width .35s ease}
+.barra .vl{font-size:12.5px;font-weight:650;font-variant-numeric:tabular-nums;text-align:right}
+.leyenda{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;font-size:12px;color:var(--muted)}
+.leyenda i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px}
+.rosca{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.rosca svg{flex:0 0 auto}
+.vacio{padding:26px;text-align:center;color:var(--muted);font-size:13px}
+
+/* ---------- Filtros ---------- */
+.filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.campo{display:flex;flex-direction:column;gap:3px}
+.campo label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+input[type=text],input[type=date],input[type=number],input[type=search],select,textarea{
+  background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+textarea{resize:vertical;min-height:62px;font-family:var(--f)}
+.buscador{flex:1;min-width:200px}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;
+      background:var(--panel2);border:1px solid var(--line);white-space:nowrap}
+.chip.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 35%,var(--line))}
+.chip.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 35%,var(--line))}
+.chip.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,var(--line))}
+.chip.info{color:var(--info);border-color:color-mix(in srgb,var(--info) 35%,var(--line))}
+
+/* ---------- Fichas de personal ---------- */
+.fichas{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:12px}
+.ficha{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);box-shadow:var(--shadow);
+       overflow:hidden;cursor:pointer;transition:transform .12s ease,box-shadow .12s ease}
+.ficha:hover{transform:translateY(-2px);box-shadow:0 3px 6px rgba(20,32,26,.09),0 10px 24px rgba(20,32,26,.11)}
+.ficha .cab{display:flex;gap:11px;padding:12px}
+.foto{width:60px;height:74px;border-radius:8px;object-fit:cover;background:var(--panel2);border:1px solid var(--line);flex:0 0 auto}
+.foto.ph{display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--muted)}
+.ficha .nom{font-weight:660;font-size:13.5px;line-height:1.25}
+.ficha .gr{font-size:12px;color:var(--muted)}
+.ficha .meta{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.35}
+.ficha .pie{display:flex;flex-wrap:wrap;gap:5px;padding:0 12px 12px}
+.ficha.sel{outline:2px solid var(--accent);outline-offset:-2px}
+/* Personal que no figura en el listado integral vigente */
+.ficha.fuera{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 5%,var(--panel))}
+.ficha.fuera .nom,.ficha.fuera .gr,.ficha.fuera .meta,.ficha.fuera .meta b{color:var(--bad)}
+tr.fuera td,tr.fuera td b{color:var(--bad)}
+.modal .caja.fuera{border-color:var(--bad);border-width:2px}
+
+/* ---------- Tablas ---------- */
+.tabla-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r2);background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:12.8px}
+th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--line2);white-space:nowrap}
+th{background:var(--panel2);font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);
+   position:sticky;top:0;z-index:2}
+tbody tr:hover{background:var(--panel2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tfoot td{font-weight:700;background:var(--panel2)}
+
+/* ---------- Organigrama ---------- */
+.org{display:grid;grid-template-columns:minmax(300px,400px) 1fr;gap:14px;align-items:start}
+.arbol{list-style:none;margin:0;padding:0}
+.arbol ul{list-style:none;margin:0;padding-left:16px;border-left:1px dashed var(--line)}
+.nodo{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:8px;cursor:pointer;margin:1px 0}
+.nodo:hover{background:var(--panel2)}
+.nodo.sel{background:var(--accent);color:var(--accent-ink)}
+.nodo.sel .cnt{background:rgba(255,255,255,.25);color:inherit}
+.nodo .tog{width:16px;text-align:center;color:var(--muted);font-size:10px;flex:0 0 auto;user-select:none}
+.nodo.sel .tog{color:inherit}
+.nodo .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:560}
+.nodo .cnt{background:var(--panel2);border-radius:999px;padding:0 7px;font-size:11px;font-weight:700;
+           font-variant-numeric:tabular-nums;color:var(--muted);flex:0 0 auto}
+.nodo[data-tipo="raiz"] .nm{font-weight:750;text-transform:uppercase;font-size:12px;letter-spacing:.03em}
+
+/* ---------- Modal ---------- */
+.modal{position:fixed;inset:0;z-index:200;background:rgba(12,20,16,.55);display:none;
+       align-items:flex-start;justify-content:center;padding:24px 14px;overflow:auto;backdrop-filter:blur(2px)}
+.modal.on{display:flex}
+.modal .caja{background:var(--panel);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.35);
+             width:min(980px,100%);border:1px solid var(--line)}
+.modal .caja.sm{width:min(520px,100%)}
+.modal .mhd{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line2);
+            position:sticky;top:0;background:var(--panel);border-radius:16px 16px 0 0;z-index:3}
+.modal .mhd h3{font-size:15px;flex:1}
+.modal .mbd{padding:18px}
+.modal .mpie{display:flex;gap:8px;padding:13px 18px;border-top:1px solid var(--line2);background:var(--panel2);
+             border-radius:0 0 16px 16px;flex-wrap:wrap}
+.modal .mpie .der{margin-left:auto;display:flex;gap:8px}
+.x{background:transparent;border:none;font-size:20px;cursor:pointer;color:var(--muted);line-height:1;padding:2px 6px;border-radius:6px}
+.x:hover{background:var(--panel2);color:var(--ink)}
+
+/* ---------- Formulario ---------- */
+.fset{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+.fset>legend{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);padding:0 7px}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:11px}
+.fgrid .full{grid-column:1/-1}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.f>label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+.f input,.f select,.f textarea{width:100%}
+.foto-edit{display:flex;gap:14px;align-items:flex-start}
+.prevbox{position:relative;width:104px;height:128px;border-radius:10px;border:1px dashed var(--line);
+  background:var(--panel2);color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:center;
+  text-align:center;overflow:hidden;flex:0 0 auto}
+.prevbox img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.prevbox.con img{display:block}
+.prevbox.con span{display:none}
+.chks{display:flex;flex-wrap:wrap;gap:9px}
+.chk{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);
+     border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12.5px}
+.chk input{margin:0;accent-color:var(--accent)}
+.chk:has(input:checked){background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.ayuda{font-size:11.5px;color:var(--muted)}
+
+/* ---------- Utilidades ---------- */
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sp{flex:1}
+.mono{font-family:var(--fm);font-size:12.5px}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:13px}
+.dl dt{color:var(--muted);font-size:12px}
+.dl dd{margin:0}
+.aviso{background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:11px 13px;font-size:12.5px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);
+       color:var(--bg);padding:10px 18px;border-radius:999px;font-size:13px;font-weight:560;z-index:400;
+       opacity:0;pointer-events:none;transition:all .22s ease;box-shadow:0 8px 26px rgba(0,0,0,.3)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (max-width:860px){
+  .org{grid-template-columns:1fr}
+  .top{flex-wrap:wrap}
+  .nav{width:100%;margin-left:0;order:3;overflow-x:auto}
+}
+@media print{
+  .top,.filtros,.nav,.btn,.modal,.no-print{display:none!important}
+  body{background:#fff}
+  .wrap{max-width:none;padding:0}
+  .card,.kpi,.tabla-wrap{box-shadow:none;border-color:#999;break-inside:avoid}
+  .ficha{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <img class="escudo" id="escudo" alt="Escudo Cdo FDR">
+  <div class="id">
+    <b>Board de Administración de Personal</b>
+    <span id="subtitulo">Cdo FDR — Orden Especial Nro 02/26 — Ejercicio ARANDÚ 26</span>
+  </div>
+  <nav class="nav" id="nav">
+    <button data-v="tablero" aria-current="page">Tablero</button>
+    <button data-v="personal">Personal</button>
+    <button data-v="organigrama">Organigrama</button>
+    <button data-v="planillas">Planillas</button>
+    <button data-v="datos">Datos</button>
+  </nav>
+  <div class="util">
+    <button class="btn sm" id="btnTema" title="Cambiar entre tema claro y oscuro">Tema</button>
+    <button class="btn sm pri" id="btnNuevo">+ Alta</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- =================== TABLERO =================== -->
+<section class="vista on" id="v-tablero">
+  <div class="sec-tit">
+    <h2>Situación general de efectivos</h2>
+    <p id="tabFecha"></p>
+  </div>
+  <div id="avisoInicio"></div>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr));margin-top:16px">
+    <div class="card"><div class="hd"><h3>Personal por género</h3><span class="sub" id="subGenero"></span></div>
+      <div class="bd"><div id="gGenero"></div></div></div>
+    <div class="card"><div class="hd"><h3>Apto médico (Anexo 27)</h3><span class="sub" id="subApto"></span></div>
+      <div class="bd"><div id="gApto"></div></div></div>
+    <div class="card"><div class="hd"><h3>Personal por grado</h3><span class="sub" id="subGrado"></span></div>
+      <div class="bd"><div id="gGrado"></div></div></div>
+    <div class="card"><div class="hd"><h3>Personal por categoría</h3></div>
+      <div class="bd"><div id="gCategoria"></div></div></div>
+    <div class="card"><div class="hd"><h3>Elemento combinado asignado</h3></div>
+      <div class="bd"><div id="gElemento"></div></div></div>
+    <div class="card"><div class="hd"><h3>Nivel de instrucción militar</h3></div>
+      <div class="bd"><div id="gInstruccion"></div></div></div>
+    <div class="card"><div class="hd"><h3>Especialidad / escalafón</h3></div>
+      <div class="bd"><div id="gEspecialidad"></div></div></div>
+    <div class="card"><div class="hd"><h3>Situación de documentación</h3>
+        <span class="sub" id="subDoc"></span></div>
+      <div class="bd"><div id="gDocumentacion"></div></div></div>
+    <div class="card"><div class="hd"><h3>Documentación por requisito</h3>
+        <span class="sub">Legajos que reúnen cada pieza</span></div>
+      <div class="bd"><div id="gRequisitos"></div></div></div>
+    <div class="card"><div class="hd"><h3>Titulares, suplentes y conductores</h3></div>
+      <div class="bd"><div id="gLista"></div></div></div>
+    <div class="card"><div class="hd"><h3>Estado de salud — condiciones declaradas</h3></div>
+      <div class="bd"><div id="gSalud"></div></div></div>
+    <div class="card"><div class="hd"><h3>Alistamiento — Instrucciones de coordinación</h3>
+        <span class="sub">Anexo 1 (Log Pers), punto XI</span></div>
+      <div class="bd"><div id="gAlistamiento"></div></div></div>
+  </div>
+
+  <div class="sec-tit"><h2>Alertas de comando</h2><p>Novedades que requieren acción</p></div>
+  <div class="card"><div class="bd" id="alertas"></div></div>
+</section>
+
+<!-- =================== PERSONAL =================== -->
+<section class="vista" id="v-personal">
+  <div class="filtros">
+    <div class="campo buscador"><label for="fBuscar">Buscar</label>
+      <input type="search" id="fBuscar" placeholder="Apellido, nombre, DNI, MI, cargo, arma…"></div>
+    <div class="campo"><label for="fGrado">Grado</label><select id="fGrado"></select></div>
+    <div class="campo"><label for="fGenero">Género</label><select id="fGenero"></select></div>
+    <div class="campo"><label for="fApto">Apto médico</label><select id="fApto"></select></div>
+    <div class="campo"><label for="fElemento">Elemento</label><select id="fElemento"></select></div>
+    <div class="campo"><label for="fEspecialidad">Especialidad</label><select id="fEspecialidad"></select></div>
+    <div class="campo"><label for="fDoc">Documentación</label><select id="fDoc"></select></div>
+    <div class="campo"><label for="fLista">Lista</label><select id="fLista"></select></div>
+    <div class="campo"><label for="fListado">Listado vigente</label><select id="fListado">
+      <option value="">Todos</option><option value="si">Sólo los vigentes</option>
+      <option value="no">Sólo los que no figuran</option></select></div>
+    <div class="campo"><label for="fOrden">Ordenar</label><select id="fOrden">
+      <option value="jerarquia">Jerarquía</option><option value="apellido">Apellido</option>
+      <option value="elemento">Elemento</option><option value="apto">Apto médico</option><option value="doc">Documentación</option></select></div>
+    <div class="campo"><label>&nbsp;</label><button class="btn" id="btnLimpiar">Limpiar</button></div>
+    <div class="campo"><label>&nbsp;</label><button class="btn" id="btnVista">Ver tabla</button></div>
+  </div>
+  <div class="row" style="margin-bottom:10px">
+    <strong id="contador"></strong><span class="sp"></span>
+    <button class="btn sm" id="btnImprimirFichas">Imprimir listado</button>
+    <button class="btn sm" id="btnCsvFiltro">Exportar CSV (filtrado)</button>
+  </div>
+  <div class="fichas" id="fichas"></div>
+  <div class="tabla-wrap" id="tablaPersonal" style="display:none"></div>
+</section>
+
+<!-- =================== ORGANIGRAMA =================== -->
+<section class="vista" id="v-organigrama">
+  <div class="sec-tit"><h2>Organigrama y asignación de puestos</h2>
+    <p>Estructura conforme Anexo 1, Anexo 3 y Suplemento 7 de la Orden Especial Nro 02/26</p></div>
+  <div class="org">
+    <div class="card">
+      <div class="hd"><h3>Estructura</h3>
+        <span class="sub"><button class="btn sm" id="btnExpandir">Expandir todo</button></span></div>
+      <div class="bd" style="max-height:70vh;overflow:auto">
+        <ul class="arbol" id="arbol"></ul>
+      </div>
+      <div class="bd" style="border-top:1px solid var(--line2);display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn sm" id="btnNodoAdd">+ Dependencia</button>
+        <button class="btn sm" id="btnNodoRen">Renombrar</button>
+        <button class="btn sm danger" id="btnNodoDel">Eliminar</button>
+        <button class="btn sm" id="btnOrgReset">Restaurar estructura</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="hd"><h3 id="orgTitulo">Seleccione una dependencia</h3>
+        <span class="sub" id="orgSub"></span></div>
+      <div class="bd" id="orgDetalle"></div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== PLANILLAS =================== -->
+<section class="vista" id="v-planillas">
+  <div class="sec-tit"><h2>Planilla numérica de personal</h2>
+    <p>Efectivos por elemento y categoría — elevación diaria al G1 del Cdo FDR</p></div>
+  <div class="row no-print" style="margin-bottom:10px">
+    <button class="btn sm" id="btnImprimirPlanilla">Imprimir / PDF</button>
+    <button class="btn sm" id="btnCsvPlanilla">Exportar CSV</button>
+  </div>
+  <div class="tabla-wrap" id="planillaNumerica"></div>
+
+  <div class="sec-tit"><h2>Control de documentación</h2>
+    <p>Planilla de datos personales, CV, CUIL, CBU y entidad bancaria, resumen de legajo y contacto de emergencia</p></div>
+  <div class="row no-print" style="margin-bottom:10px">
+    <button class="btn sm" id="btnSoloFaltantes">Ver sólo los que adeudan</button>
+  </div>
+  <div class="tabla-wrap" id="planillaDocumentacion"></div>
+
+  <div class="sec-tit"><h2>Rol de armamento</h2><p>Control de números de serie asignados</p></div>
+  <div class="tabla-wrap" id="planillaArmamento"></div>
+
+  <div class="sec-tit"><h2>Novedades sanitarias</h2>
+    <p>Apto médico, alergias, medicación y patologías declaradas</p></div>
+  <div class="tabla-wrap" id="planillaSanidad"></div>
+
+  <div class="sec-tit"><h2>Rol de combate</h2><p>Función asignada en el dispositivo</p></div>
+  <div class="tabla-wrap" id="planillaRol"></div>
+</section>
+
+<!-- =================== DATOS =================== -->
+<section class="vista" id="v-datos">
+  <div class="sec-tit"><h2>Gestión de datos</h2><p>Copia de seguridad, portabilidad e importación</p></div>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+    <div class="card"><div class="hd"><h3>Archivo de datos en el pen drive</h3></div><div class="bd">
+      <p class="ayuda" style="margin-top:0">Todos los datos —legajos, fotografías y organigrama— viven en un
+      único documento: <span class="mono">datos-personal.json</span>, ubicado junto a este archivo HTML.
+      Se lo abre una vez con <b>Abrir datos-personal.json</b> y desde entonces el board lo lee y lo guarda
+      automáticamente tras cada cambio.</p>
+      <div class="row" style="margin-top:10px">
+        <button class="btn pri" id="btnAbrir">Abrir datos-personal.json</button>
+        <button class="btn" id="btnVincular">Crear o reemplazar archivo</button>
+        <button class="btn" id="btnGuardarArch">Guardar ahora</button>
+      </div>
+      <p class="ayuda" id="estadoArchivo" style="margin-top:10px"></p>
+    </div></div>
+
+    <div class="card"><div class="hd"><h3>Exportar</h3></div><div class="bd">
+      <div class="row">
+        <button class="btn" id="btnExpJson">Descargar JSON completo</button>
+        <button class="btn" id="btnExpCsv">Descargar CSV</button>
+      </div>
+      <p class="ayuda" style="margin-top:10px">El JSON incluye fotografías y la estructura del organigrama.
+      Es el formato de respaldo recomendado.</p>
+    </div></div>
+
+    <div class="card"><div class="hd"><h3>Importar</h3></div><div class="bd">
+      <div class="row">
+        <button class="btn" id="btnImpJson">Importar JSON (reemplaza)</button>
+        <button class="btn" id="btnImpJsonMerge">Importar JSON (fusiona)</button>
+        <button class="btn" id="btnImpCsv">Importar CSV</button>
+      </div>
+      <input type="file" id="archivoImp" accept=".json,.csv" style="display:none">
+      <p class="ayuda" style="margin-top:10px">La fusión conserva los legajos existentes y agrega/actualiza por DNI.</p>
+    </div></div>
+
+    <div class="card"><div class="hd"><h3>Carga inicial y limpieza</h3></div><div class="bd">
+      <div class="row">
+        <button class="btn" id="btnDemo">Cargar 24 legajos de ejemplo</button>
+        <button class="btn danger" id="btnBorrar">Borrar todo</button>
+      </div>
+      <p class="ayuda" style="margin-top:10px">Los legajos de ejemplo son ficticios y sirven para probar el board
+      sin tocar los datos reales. Reemplazan todo lo cargado.</p>
+    </div></div>
+
+    <div class="card" style="grid-column:1/-1"><div class="hd"><h3>Estado del almacenamiento</h3></div>
+      <div class="bd" id="estadoAlmacen"></div></div>
+  </div>
+</section>
+
+</div><!-- /wrap -->
+
+<!-- =================== MODAL LEGAJO =================== -->
+<div class="modal" id="mLegajo"><div class="caja">
+  <div class="mhd"><h3 id="mTitulo">Legajo</h3>
+    <button class="btn sm" id="btnImprimirFicha">Imprimir ficha</button>
+    <button class="x" data-cerrar>&times;</button></div>
+  <div class="mbd" id="mCuerpo"></div>
+  <div class="mpie">
+    <button class="btn danger" id="btnEliminar">Eliminar legajo</button>
+    <div class="der">
+      <button class="btn" data-cerrar>Cancelar</button>
+      <button class="btn pri" id="btnGuardar">Guardar</button>
+    </div>
+  </div>
+</div></div>
+
+<!-- =================== MODAL GENERICO =================== -->
+<div class="modal" id="mAviso"><div class="caja sm">
+  <div class="mhd"><h3 id="aTitulo">Confirmar</h3><button class="x" data-cerrar>&times;</button></div>
+  <div class="mbd" id="aCuerpo"></div>
+  <div class="mpie"><div class="der">
+    <button class="btn" data-cerrar>Cancelar</button>
+    <button class="btn pri" id="aOk">Aceptar</button></div></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   1. CATALOGOS DOCTRINARIOS
+   ============================================================ */
+const GRADOS = [
+  {c:"Tte Grl",  n:"Teniente General",       cat:"Oficial",     j:1},
+  {c:"Grl Div",  n:"General de División",    cat:"Oficial",     j:2},
+  {c:"Grl Br",   n:"General de Brigada",     cat:"Oficial",     j:3},
+  {c:"Cnl My",   n:"Coronel Mayor",          cat:"Oficial",     j:4},
+  {c:"Cnl",      n:"Coronel",                cat:"Oficial",     j:5},
+  {c:"Tte Cnl",  n:"Teniente Coronel",       cat:"Oficial",     j:6},
+  {c:"My",       n:"Mayor",                  cat:"Oficial",     j:7},
+  {c:"Cap",      n:"Capitán",                cat:"Oficial",     j:8},
+  {c:"Tte 1ro",  n:"Teniente Primero",       cat:"Oficial",     j:9},
+  {c:"Tte",      n:"Teniente",               cat:"Oficial",     j:10},
+  {c:"Sbtte",    n:"Subteniente",            cat:"Oficial",     j:11},
+  {c:"Sbof My",  n:"Suboficial Mayor",       cat:"Suboficial",  j:12},
+  {c:"Sbof Pral",n:"Suboficial Principal",   cat:"Suboficial",  j:13},
+  {c:"Sgto Ayte",n:"Sargento Ayudante",      cat:"Suboficial",  j:14},
+  {c:"Sgto 1ro", n:"Sargento Primero",       cat:"Suboficial",  j:15},
+  {c:"Sgto",     n:"Sargento",               cat:"Suboficial",  j:16},
+  {c:"Cbo 1ro",  n:"Cabo Primero",           cat:"Suboficial",  j:17},
+  {c:"Cbo",      n:"Cabo",                   cat:"Suboficial",  j:18},
+  {c:"Vol 1ra",  n:"Voluntario de Primera",  cat:"Tropa",       j:19},
+  {c:"Vol 2da",  n:"Voluntario de Segunda",  cat:"Tropa",       j:20},
+  {c:"Sold",     n:"Soldado",                cat:"Tropa",       j:21},
+  {c:"Civ",      n:"Personal Civil",         cat:"Civil",       j:22}
+];
+const CATEGORIAS = ["Oficial","Suboficial","Tropa","Civil","Sin categoría"];
+const LISTAS = ["Titular","Suplente","Conductor"];
+
+const ESPECIALIDADES = ["Infantería","Infantería Paracaidista","Infantería de Montaña","Infantería Mecanizada",
+  "Caballería","Caballería Blindada","Artillería","Artillería Antiaérea","Ingenieros","Comunicaciones",
+  "Guerra Electrónica","Inteligencia","Intendencia","Arsenales","Aviación de Ejército","Operaciones Especiales",
+  "Policía Militar","Asuntos Civiles","Operaciones Psicológicas","DQBRN","Transporte","Sanidad — Médico",
+  "Sanidad — Enfermería","Sanidad — Odontología","Sanidad — Veterinaria","Justicia / Auditoría",
+  "Educación Física","Músicos","Informática / Ciberdefensa","Sin especificar"];
+
+const ROLES_COMBATE = ["Comandante / Jefe de Elemento","Segundo Comandante","Jefe de Estado Mayor",
+  "Of Personal (G1/S1)","Of Inteligencia (G2/S2)","Of Operaciones (G3/S3)","Of Logística (G4/S4)",
+  "Of Comunicaciones (G6/S6)","Of Sanidad del EME","Of Seguridad contra Accidentes","Of de Enlace",
+  "Jefe de Subunidad","Jefe de Sección","Jefe de Grupo","Tirador","Tirador Especial / Francotirador",
+  "Apuntador de Ametralladora","Municionero","Sirviente de Mortero","Apuntador Antitanque","Explorador",
+  "Operador de Radio","Conductor","Conductor de Vehículo Blindado","Mecánico","Armero",
+  "Enfermero de Combate","Camillero","Jefe Gpo LCF","Nro 1 LCF","Nro 2 LCF","Guía Paracaidista",
+  "Piloto","Mecánico de Aeronave","Operador de Sistemas","Personal de Plana Mayor"];
+
+const ARMAMENTO = ["Sin asignar","FAL 7,62 mm","Fusil 5,56 mm","Pistola 9 mm","Pistola Ametralladora 9 mm",
+  "Fusil .50","Fusil de Tirador Especial","Ametralladora 7,62 mm","Ametralladora 5,56 mm",
+  "Lanzacohetes AT-4","Carl Gustav",
+  "FAL Paracaidista 7,62 mm","FARA 83 5,56 mm","FAA 5,56 mm","FMK-3 9 mm","Pistola Browning HP 9 mm",
+  "Pistola Bersa Thunder 9 mm","Ametralladora MAG 7,62 mm","Ametralladora Browning 12,7 mm",
+  "Fusil de Precisión 7,62 mm","Mortero 60 mm","Mortero 81 mm","Mortero 120 mm",
+  "Lanzacohetes Instalaza C-90","Cañón sin retroceso 105 mm"];
+
+const APTOS = [
+  {c:"A", n:"A — Apto sin limitaciones", clase:"ok"},
+  {c:"B", n:"B — Apto con limitaciones", clase:"warn"},
+  {c:"C", n:"C — No apto temporario",    clase:"bad"},
+  {c:"D", n:"D — No apto",               clase:"bad"},
+  {c:"S", n:"Sin registrar / vencido",   clase:"bad"}
+];
+const GENEROS = ["Masculino","Femenino","No binario","Sin declarar"];
+const NIVELES = ["Sin determinar","Básico","Intermedio","Avanzado","Superior / Instructor"];
+/* Requisitos de documentación que debe reunir cada efectivo */
+const REQUISITOS = [
+  {k:"docPlanilla", n:"Planilla de datos personales", tipo:"doc"},
+  {k:"docCV",       n:"Curriculum Vitae",             tipo:"doc"},
+  {k:"cuil",        n:"CUIL",                         tipo:"texto"},
+  {k:"cbu",         n:"CBU y entidad bancaria",       tipo:"par", par:"banco"},
+  {k:"docLegajo",   n:"Resumen de legajo",            tipo:"doc"},
+  {k:"emergNombre", n:"Contacto de emergencia",       tipo:"par", par:"emergTel"}
+];
+const ESTADOS_DOC = ["Completa","Incompleta","Sin iniciar"];
+const SANGRE = ["0-","0+","A-","A+","B-","B+","AB-","AB+","Sin registrar"];
+const CURSOS = ["Paracaidista","Guía Paracaidista","Comando","Montaña","Buzo","Asalto Aeromóvil","Tirador Especial",
+  "DQBRN","Auxiliar Sanitario de Combate","Instructor de Tiro","Guerra Electrónica","Operaciones Psicológicas",
+  "Policía Militar","Lucha Contra el Fuego (LCF)","Supervivencia","Conductor Blindado"];
+
+/* Estructura inicial del organigrama — Anexo 1 (Log Pers), Anexo 3 (Op) y Suplemento 7 (C2) */
+const ORG_SEMILLA = [
+ {id:"fdr", n:"Cdo FDR — Fuerza de Despliegue Rápido", tipo:"raiz", h:[
+   {id:"ej", n:"Dirección del Ejercicio ARANDÚ 26", h:[
+     {id:"ej-dir", n:"Dirección del Ejercicio"},
+     {id:"ej-em",  n:"Estado Mayor del Ejercicio"},
+     {id:"ej-enl", n:"Oficiales de Enlace"},
+     {id:"ej-oca", n:"Oficiales Controladores / Árbitros"}
+   ]},
+   {id:"fdr-pcmdo", n:"Puesto Comando Principal (PCMDO)", h:[
+     {id:"fdr-eme", n:"Estado Mayor Especial (EME)", h:[
+       {id:"fdr-eme-san", n:"Of Sanidad del EME"},
+       {id:"fdr-eme-sca", n:"Of Seguridad contra Accidentes"}
+     ]},
+     {id:"fdr-g1", n:"Dpto Personal (G1)"},
+     {id:"fdr-g2", n:"Dpto Inteligencia (G2)"},
+     {id:"fdr-g3", n:"Dpto Operaciones (G3)"},
+     {id:"fdr-g4", n:"Dpto Material (G4)"},
+     {id:"fdr-cug", n:"Cuartel General"}
+   ]},
+   {id:"fdr-b4",  n:"Br Aerot Parac IV"},
+   {id:"fdr-b1",  n:"Br Bl I (agregada en apoyo)"},
+   {id:"fdr-b10", n:"Br Mec X"},
+   {id:"fdr-foe", n:"Agr FOE — Elem TOE"},
+   {id:"fdr-av",  n:"Agr Av Ej 601"},
+   {id:"fdr-tr",  n:"Dir Transp 601 (B Transp 601)", h:[
+     {id:"tr-btransp601", n:"B Transp 601"},
+     {id:"tr-brbl2",      n:"Cdo Br Bl II (BAL Paraná)"},
+     {id:"tr-tandil",     n:"B Apy Log Tandil"},
+     {id:"tr-balc",       n:"BALC"}
+   ]},
+   {id:"fdr-dgs", n:"Dirección General de Salud (DGS)"},
+   {id:"fdr-faa", n:"Elem Op Fuerza Aérea Argentina"}
+ ]},
+ {id:"arandu", n:"C Cj Cbn ARANDÚ — Comando Conjunto Combinado", tipo:"raiz", h:[
+   {id:"ar-fn",  n:"FN Cbn — Fuerza Naval Combinada"},
+   {id:"ar-fa",  n:"FA Cbn — Fuerza Aérea Combinada"},
+   {id:"ar-fgc", n:"F G Ciber Cbn — Guerra Cibernética Combinada"},
+   {id:"ar-foe", n:"F Op Esp Cbn — Operaciones Especiales Combinada"},
+   {id:"ar-flog",n:"F Log Cbn — Fuerza Logística Combinada"},
+   {id:"ar-ft",  n:"FT Cbn — Fuerza de Tarea Terrestre Combinada", h:[
+     {id:"ft-de1", n:"1ª DE (Am)"},
+     {id:"ft-de5", n:"5ª DE"},
+     {id:"ft-caft",n:"CAFT Cbn — Comando de Artillería"},
+     {id:"ft-aaae",n:"1ª Bda AAAe"},
+     {id:"ft-ceft",n:"CEFT Cbn — Comando de Ingenieros"},
+     {id:"ft-clft",n:"CLFT Cbn — Comando Logístico"},
+     {id:"ft-gpt", n:"Gpt Cmdo Ptc"},
+     {id:"ft-de3", n:"3ª DE Cbn — División Ejército 3 Combinada", h:[
+       {id:"de3-b22",  n:"Bda Cbn 22 (ataque principal)", h:[
+         {id:"b22-rctan8",   n:"RC Tan 8"},
+         {id:"b22-rimec6",   n:"RI Mec 6"},
+         {id:"b22-ga10",     n:"GA 10"},
+         {id:"b22-secing10", n:"Sec Ing Mec 10"},
+         {id:"b22-caapy",    n:"Ca Apy"}
+       ]},
+       {id:"de3-b12",  n:"Br Mte XII (Az)"},
+       {id:"de3-bav",  n:"Bda Av Ej Cbn — B Av Ej Combinado", h:[
+         {id:"av-bhelic601", n:"SArm Bell UH-1H II — B Helic Asal 601"},
+         {id:"av-ab206",     n:"SArm AB / Bell 407GXI — Esc Av Expl Atq 602"},
+         {id:"av-casa212",   n:"SArm CASA 212 — B Av Apy Comb 601"},
+         {id:"av-c208",      n:"SArm C-208 — B Av Apy Comb 601"},
+         {id:"av-c550",      n:"SArm C-550B Citation"},
+         {id:"av-secavej5",  n:"Sec Av Ej M 5"},
+         {id:"av-abast601",  n:"B Abast Manto Aeron 601"}
+       ]},
+       {id:"de3-amv",  n:"FT Amv Cbn — B Asal Ae Combinado", h:[
+         {id:"amv-rasalae601", n:"R Asal Ae 601"}
+       ]},
+       {id:"de3-pqdt", n:"FT Inf Pqdt Cbn — FT Parac Combinada", h:[
+         {id:"pq-riparac2", n:"RI Parac 2"}
+       ]},
+       {id:"de3-rc19", n:"19º RC Mec"},
+       {id:"de3-b4",   n:"4ª Bda Inf Mtz"},
+       {id:"de3-ft1rcc",n:"FT 1º RCC"},
+       {id:"de3-ad3",  n:"AD/3 — Artillería Divisionaria"},
+       {id:"de3-gaaae",n:"3º GAAAe (Vd)"},
+       {id:"de3-gpte", n:"4º Gpt E — Ingenieros"},
+       {id:"de3-com",  n:"1º B Com GE — Comunicaciones y GE"},
+       {id:"de3-clde", n:"CLDE/3 — Comando Logístico Divisionario"},
+       {id:"de3-asciv",n:"3ª Cia Ass Civ — Asuntos Civiles"},
+       {id:"de3-dqbrn",n:"3ª Cia DQBRN"},
+       {id:"de3-pe",   n:"3ª Cia PE — Policía Militar"},
+       {id:"de3-psc",  n:"Dst Op Psc — Operaciones Psicológicas"},
+       {id:"de3-tr",   n:"Tr/3ª DE — Tropas Divisionarias"}
+     ]},
+     {id:"ft-foesp", n:"FT Op Esp Cbn — FT Fuerzas Especiales Combinada", h:[
+       {id:"foe-cacdo601",  n:"Ca Cdo(s) 601"},
+       {id:"foe-cacdo602",  n:"Ca Cdo(s) 602"},
+       {id:"foe-cacdo603",  n:"Ca Cdo(s) 603"},
+       {id:"foe-caffee601", n:"Ca FFEE 601"},
+       {id:"foe-afoe",      n:"Agr FOE (AFOE)"}
+     ]},
+     {id:"ft-res",   n:"Reserva de la FT Combinada"}
+   ]}
+ ]}
+];
+
+/* ============================================================
+   2. ESTADO Y PERSISTENCIA
+   ============================================================ */
+const CLAVE = "board_personal_fdr_v1";
+const ESTADO = { personal:[], org:null, tema:"claro", vistaTabla:false, filtroOrg:null, nodoSel:null, editandoId:null };
+let manejadorArchivo = null;   // File System Access API
+
+const $  = (s,e=document)=>e.querySelector(s);
+const $$ = (s,e=document)=>[...e.querySelectorAll(s)];
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => "p"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),2400);}
+
+function clonar(o){return JSON.parse(JSON.stringify(o));}
+
+function cargar(){
+  try{
+    const raw = localStorage.getItem(CLAVE);
+    if(raw){
+      const d = JSON.parse(raw);
+      ESTADO.personal = Array.isArray(d.personal)? d.personal : [];
+      ESTADO.org      = d.org || clonar(ORG_SEMILLA);
+      ESTADO.tema     = d.tema || "claro";
+    }else{
+      ESTADO.org = clonar(ORG_SEMILLA);
+    }
+  }catch(e){
+    ESTADO.org = clonar(ORG_SEMILLA);
+    console.warn("No se pudo leer el almacenamiento local:",e);
+  }
+  if(!ESTADO.org) ESTADO.org = clonar(ORG_SEMILLA);
+}
+
+let guardarPendiente = null;
+let avisoCupo = false;
+function guardar(){
+  const paquete = {v:1, generado:new Date().toISOString(), personal:ESTADO.personal, org:ESTADO.org, tema:ESTADO.tema};
+  try{
+    localStorage.setItem(CLAVE, JSON.stringify(paquete));
+  }catch(e){
+    /* Sin cupo: se conserva en el navegador todo salvo las fotografías, que quedan
+       únicamente en el documento de datos. */
+    try{
+      localStorage.setItem(CLAVE, JSON.stringify({...paquete, sinFotos:true,
+        personal: ESTADO.personal.map(p=>p.foto? {...p, foto:""} : p)}));
+      if(!avisoCupo){
+        avisoCupo = true;
+        toast(manejadorArchivo
+          ? "Las fotografías superan el cupo del navegador: se conservan en el documento de datos."
+          : "Las fotografías superan el cupo del navegador. Abra el documento de datos para no perderlas.");
+      }
+    }catch(e2){
+      console.warn(e2);
+      toast("El navegador no admite más datos. Abra o descargue el documento de datos.");
+    }
+  }
+  if(manejadorArchivo){
+    clearTimeout(guardarPendiente);
+    guardarPendiente = setTimeout(()=>escribirArchivo(paquete), 1200);
+  }
+}
+
+async function escribirArchivo(paquete){
+  try{
+    const w = await manejadorArchivo.createWritable();
+    await w.write(JSON.stringify(paquete,null,1));
+    await w.close();
+    $("#estadoArchivo").textContent = "Vinculado a "+manejadorArchivo.name+" — último guardado "+new Date().toLocaleTimeString("es-AR");
+  }catch(e){ console.warn(e); toast("No se pudo escribir el archivo del pen drive."); }
+}
+
+/* ---------- utilidades de organigrama ---------- */
+function orgPlano(nodos=ESTADO.org, prof=0, acc=[], rutaId=[]){
+  for(const n of nodos){
+    acc.push({id:n.id, n:n.n, prof, tipo:n.tipo||"", ruta:[...rutaId,n.id], raiz:rutaId[0]||n.id});
+    if(n.h) orgPlano(n.h, prof+1, acc, [...rutaId,n.id]);
+  }
+  return acc;
+}
+function orgBuscar(id, nodos=ESTADO.org, padre=null){
+  for(const n of nodos){
+    if(n.id===id) return {nodo:n, padre, lista:nodos};
+    if(n.h){ const r = orgBuscar(id, n.h, n); if(r) return r; }
+  }
+  return null;
+}
+function orgNombre(id){ const r = orgBuscar(id); return r? r.nodo.n : ""; }
+function orgDescendientes(id){
+  const r = orgBuscar(id); if(!r) return [id];
+  const out=[]; (function rec(n){ out.push(n.id); (n.h||[]).forEach(rec); })(r.nodo); return out;
+}
+/* Elementos combinados: subarbol del C Cj Cbn ARANDU */
+function elementosCombinados(){
+  return orgPlano().filter(x=>x.raiz==="arandu" && x.id!=="arandu");
+}
+
+/* ============================================================
+   3. MODELO DE LEGAJO
+   ============================================================ */
+function legajoVacio(){
+  return {id:uid(), apellido:"", nombre:"", nombreListado:"", verificarNombre:false,
+    dni:"", cuil:"", mi:"", nacimiento:"", genero:"Sin declarar",
+    estadoCivil:"", domicilio:"", telefono:"", email:"",
+    emergNombre:"", emergTel:"", obraSocial:"", obraSocialNro:"",
+    cbu:"", banco:"", docPlanilla:false, docCV:false, docLegajo:false,
+    lista:"Titular", grado:"Vol 1ra", especialidad:"Infantería", especialidadDetalle:"",
+    cargo:"", rolCombate:"Tirador", destino:"",
+    orgId:"", elementoId:"", nivel:"Básico", cursos:[],
+    licVence:"", licCat:"", vehiculo:"", fueraListado:false,
+    armamento:"Sin asignar", armaNro:"", armaAux:"", armaAuxNro:"", equipoOptico:"",
+    apto:"S", aptoVence:"", sangre:"Sin registrar", alergias:"", medicacion:"", patologias:"",
+    vacunas:"", dieta:"", saludObs:"",
+    anexo27:false, credencial:false, kitPrimAux:false, equipoCampania:false,
+    foto:"", observaciones:"", actualizado:new Date().toISOString()};
+}
+
+/* ---------- Situación de documentación ---------- */
+function requisitoCumplido(p, r){
+  if(r.tipo==="doc")   return !!p[r.k];
+  if(r.tipo==="texto") return !!String(p[r.k]||"").trim();
+  return !!String(p[r.k]||"").trim() && !!String(p[r.par]||"").trim();
+}
+function docsEstado(p){
+  const faltan = REQUISITOS.filter(r=>!requisitoCumplido(p,r));
+  const ok = REQUISITOS.length - faltan.length;
+  return {ok, total:REQUISITOS.length, faltan:faltan.map(r=>r.n),
+          estado: ok===REQUISITOS.length? "Completa" : (ok===0? "Sin iniciar" : "Incompleta")};
+}
+const claseDoc = e => e==="Completa"? "ok" : (e==="Sin iniciar"? "bad" : "warn");
+
+const gradoInfo = c => GRADOS.find(g=>g.c===c) || {c:c||"—", n:c||"Sin grado", cat:"Sin categoría", j:99};
+const aptoInfo  = c => APTOS.find(a=>a.c===c) || APTOS[4];
+const nombreCompleto = p => (p.apellido||"").toUpperCase() + (p.nombre? ", "+p.nombre : "");
+const iniciales = p => ((p.apellido||"?")[0]||"?").toUpperCase() + ((p.nombre||"")[0]||"").toUpperCase();
+
+function aptoVencido(p){
+  if(!p.aptoVence) return false;
+  const d = new Date(p.aptoVence+"T00:00:00");
+  return !isNaN(d) && d < new Date(new Date().toDateString());
+}
+function aptoEfectivo(p){ return aptoVencido(p) ? "S" : (p.apto||"S"); }
+function alistamientoOk(p){ return p.anexo27 && p.credencial && p.kitPrimAux && p.equipoCampania; }
+
+/* ============================================================
+   4. GRAFICOS (SVG/CSS propios, sin librerias)
+   ============================================================ */
+const PALETA = ["#3f5c3a","#2d6a8f","#b07d16","#7d5ba6","#2e7d32","#a33227","#4f6f7d","#8a7b3f","#6a8f7d","#94566b"];
+
+function barras(cont, datos, opt={}){
+  const el = typeof cont==="string"? $(cont):cont;
+  const total = datos.reduce((a,d)=>a+d.v,0);
+  if(!datos.length){ el.innerHTML = '<div class="vacio">Sin datos cargados</div>'; return; }
+  const max = Math.max(1, ...datos.map(d=>d.v));
+  el.innerHTML = '<div class="barras">' + datos.map((d,i)=>{
+    const color = d.color || (opt.multicolor? PALETA[i%PALETA.length] : "var(--accent)");
+    const pct = total? Math.round(d.v/total*100) : 0;
+    return `<div class="barra" title="${esc(d.k)}: ${d.v} (${pct}%)">
+      <span class="et">${esc(d.k)}</span>
+      <span class="pista"><span class="fill" style="width:${(d.v/max*100).toFixed(1)}%;background:${color}"></span></span>
+      <span class="vl">${d.v}</span></div>`;
+  }).join("") + "</div>" +
+  (opt.pie? `<p class="ayuda" style="margin:10px 0 0">${esc(opt.pie)}</p>`:"");
+}
+
+function rosca(cont, datos, opt={}){
+  const el = typeof cont==="string"? $(cont):cont;
+  const total = datos.reduce((a,d)=>a+d.v,0);
+  if(!total){ el.innerHTML = '<div class="vacio">Sin datos cargados</div>'; return; }
+  const R=54, r=34, cx=62, cy=62; let ang=-Math.PI/2, seg="";
+  datos.forEach((d,i)=>{
+    if(!d.v) return;
+    const a2 = ang + d.v/total*Math.PI*2;
+    const grande = (a2-ang) > Math.PI ? 1 : 0;
+    const p = (rad,a)=>[cx+rad*Math.cos(a), cy+rad*Math.sin(a)];
+    const [x1,y1]=p(R,ang), [x2,y2]=p(R,a2), [x3,y3]=p(r,a2), [x4,y4]=p(r,ang);
+    const color = d.color || PALETA[i%PALETA.length];
+    seg += `<path d="M${x1.toFixed(2)} ${y1.toFixed(2)} A${R} ${R} 0 ${grande} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} L${x3.toFixed(2)} ${y3.toFixed(2)} A${r} ${r} 0 ${grande} 0 ${x4.toFixed(2)} ${y4.toFixed(2)} Z" fill="${color}"><title>${esc(d.k)}: ${d.v}</title></path>`;
+    ang = a2;
+  });
+  el.innerHTML = `<div class="rosca">
+    <svg width="124" height="124" viewBox="0 0 124 124" role="img" aria-label="${esc(opt.aria||"Distribución")}">
+      ${seg}<text x="62" y="60" text-anchor="middle" font-size="22" font-weight="700" fill="currentColor">${total}</text>
+      <text x="62" y="76" text-anchor="middle" font-size="9.5" fill="currentColor" opacity=".65">${esc(opt.centro||"TOTAL")}</text>
+    </svg>
+    <div style="flex:1;min-width:150px"><div class="barras">${datos.filter(d=>d.v).map((d,i)=>{
+      const color = d.color || PALETA[datos.indexOf(d)%PALETA.length];
+      return `<div class="barra" style="grid-template-columns:120px 1fr 62px">
+        <span class="et"><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${color};margin-right:6px"></i>${esc(d.k)}</span>
+        <span class="pista"><span class="fill" style="width:${(d.v/total*100).toFixed(1)}%;background:${color}"></span></span>
+        <span class="vl">${d.v} · ${Math.round(d.v/total*100)}%</span></div>`;}).join("")}</div></div></div>`;
+}
+
+function contar(lista, fn){
+  const m = new Map();
+  lista.forEach(p=>{ const k = fn(p) || "Sin dato"; m.set(k,(m.get(k)||0)+1); });
+  return m;
+}
+function mapaAArray(m, orden){
+  let a = [...m].map(([k,v])=>({k,v}));
+  if(orden) a.sort((x,y)=>orden.indexOf(x.k)-orden.indexOf(y.k));
+  else a.sort((x,y)=>y.v-x.v);
+  return a;
+}
+
+/* ============================================================
+   5. VISTA TABLERO
+   ============================================================ */
+function pintarTablero(){
+  const P = ESTADO.personal;
+  $("#tabFecha").textContent = "Actualizado al " + new Date().toLocaleString("es-AR",{dateStyle:"long",timeStyle:"short"});
+  $("#avisoInicio").innerHTML = P.length ? "" :
+    `<div class="aviso" style="margin-bottom:16px">Sin datos cargados. Se deberá ingresar a la solapa
+     <b>Datos</b> y abrir el archivo <span class="mono">datos-personal.json</span> que acompaña a este board.
+     En los navegadores que no admiten apertura directa de archivos se empleará <b>Importar JSON</b>.</div>`;
+
+  const docs      = P.map(docsEstado);
+  const docComp   = docs.filter(d=>d.estado==="Completa").length;
+  const docSin    = docs.filter(d=>d.estado==="Sin iniciar").length;
+  const aptosA    = P.filter(p=>aptoEfectivo(p)==="A").length;
+  const noAptos   = P.filter(p=>["C","D"].includes(aptoEfectivo(p))).length;
+  const sinApto   = P.filter(p=>aptoEfectivo(p)==="S").length;
+  const conAlerg  = P.filter(p=>(p.alergias||"").trim()).length;
+  const armados   = P.filter(p=>p.armamento && p.armamento!=="Sin asignar").length;
+  const listos    = P.filter(alistamientoOk).length;
+  const vigentes  = P.filter(p=>!p.fueraListado);
+  const titulares = vigentes.filter(p=>p.lista==="Titular").length;
+  const fuera     = P.length - vigentes.length;
+
+  $("#kpis").innerHTML = [
+    {n:vigentes.length, t:"Efectivos del listado vigente", d:titulares+" titulares · "+(vigentes.length-titulares)+" suplentes y conductores", c:""},
+    {n:fuera, t:"No figuran en el listado", d:fuera? "Marcados en rojo · a resolver por el comando":"Sin novedad", c:fuera?"bad":"ok"},
+    {n:docComp, t:"Documentación completa", d:P.length? Math.round(docComp/P.length*100)+"% del efectivo":"—", c:docComp===P.length&&P.length?"ok":"warn"},
+    {n:P.length-docComp, t:"Documentación pendiente", d:docSin+" sin iniciar", c:(P.length-docComp)?"bad":"ok"},
+    {n:aptosA, t:"Apto médico A", d:"Anexo 27 vigente", c:"ok"},
+    {n:noAptos, t:"No aptos (C/D)", d:"Requieren evaluación", c:noAptos?"bad":""},
+    {n:sinApto, t:"Sin apto / vencido", d:"Responsabilidad de comando", c:sinApto?"warn":""},
+    {n:conAlerg, t:"Con alergias", d:"Novedad sanitaria declarada", c:"info"},
+    {n:armados, t:"Armamento asignado", d:"Con Nro de serie registrado", c:""},
+    {n:listos, t:"Alistamiento completo", d:"Anexo 27 + credencial + kit + equipo", c:listos===P.length&&P.length?"ok":"warn"}
+  ].map(k=>`<div class="kpi ${k.c}"><div class="n">${k.n}</div><div class="t">${esc(k.t)}</div><div class="d">${esc(k.d)}</div></div>`).join("");
+
+  /* Género */
+  const gen = mapaAArray(contar(P,p=>p.genero), GENEROS);
+  rosca("#gGenero", gen, {centro:"EFECTIVOS", aria:"Personal por género"});
+  $("#subGenero").textContent = gen.map(d=>d.k+": "+d.v).join(" · ");
+
+  /* Apto médico */
+  const apMap = new Map(APTOS.map(a=>[a.n,0]));
+  P.forEach(p=>{ const a=aptoInfo(aptoEfectivo(p)); apMap.set(a.n,(apMap.get(a.n)||0)+1); });
+  const colApto = {"ok":"#2e7d32","warn":"#b07d16","bad":"#a33227"};
+  rosca("#gApto", [...apMap].map(([k,v])=>({k,v,color:colApto[(APTOS.find(a=>a.n===k)||{}).clase]||"#888"})),
+        {centro:"ANEXO 27", aria:"Personal por apto médico"});
+  const venc = P.filter(aptoVencido).length;
+  $("#subApto").textContent = venc? venc+" con apto vencido" : "Sin aptos vencidos";
+
+  /* Grado */
+  const ordenG = GRADOS.map(g=>g.c+" — "+g.n);
+  const gr = mapaAArray(contar(P,p=>{const g=gradoInfo(p.grado);return g.c+" — "+g.n;}), ordenG).filter(d=>d.v);
+  barras("#gGrado", gr, {pie:"Ordenado por jerarquía descendente."});
+  $("#subGrado").textContent = gr.length+" grados representados";
+
+  /* Categoría */
+  rosca("#gCategoria", mapaAArray(contar(P,p=>gradoInfo(p.grado).cat), CATEGORIAS).filter(d=>d.v),
+        {centro:"TOTAL", aria:"Personal por categoría"});
+
+  /* Elemento combinado */
+  barras("#gElemento", mapaAArray(contar(P,p=>p.elementoId? orgNombre(p.elementoId):"Sin asignar")).slice(0,14), {multicolor:true});
+
+  /* Nivel de instrucción */
+  barras("#gInstruccion", mapaAArray(contar(P,p=>p.nivel), NIVELES).filter(d=>d.v), {multicolor:true});
+
+  /* Especialidad */
+  barras("#gEspecialidad", mapaAArray(contar(P,p=>p.especialidad)).slice(0,12), {multicolor:true});
+
+  /* Situación de documentación */
+  const colDoc = {"Completa":"#2e7d32","Incompleta":"#b07d16","Sin iniciar":"#a33227"};
+  rosca("#gDocumentacion", ESTADOS_DOC.map(e=>({k:e, v:docs.filter(d=>d.estado===e).length, color:colDoc[e]})),
+        {centro:"LEGAJOS", aria:"Personal por situación de documentación"});
+  const totalReq = P.length*REQUISITOS.length;
+  const reunidos = docs.reduce((a,d)=>a+d.ok,0);
+  $("#subDoc").textContent = totalReq? reunidos+" de "+totalReq+" requisitos reunidos ("+Math.round(reunidos/totalReq*100)+"%)" : "";
+
+  /* Documentación por requisito */
+  barras("#gRequisitos", !P.length? [] : REQUISITOS.map(r=>{
+    const v = P.filter(p=>requisitoCumplido(p,r)).length;
+    return {k:r.n, v, color: (P.length && v===P.length)? "#2e7d32" : (v? "#b07d16":"#a33227")};
+  }), {pie:"Sobre un total de "+P.length+" efectivos."});
+
+  /* Lista */
+  barras("#gLista", mapaAArray(contar(P,p=>p.lista), LISTAS).filter(d=>d.v), {multicolor:true});
+
+  /* Salud */
+  barras("#gSalud", !P.length? [] : [
+    {k:"Alergias declaradas",  v:P.filter(p=>(p.alergias||"").trim()).length,   color:"#a33227"},
+    {k:"Medicación habitual",  v:P.filter(p=>(p.medicacion||"").trim()).length, color:"#b07d16"},
+    {k:"Patologías previas",   v:P.filter(p=>(p.patologias||"").trim()).length, color:"#7d5ba6"},
+    {k:"Dieta especial",       v:P.filter(p=>(p.dieta||"").trim()).length,      color:"#2d6a8f"},
+    {k:"Grupo sanguíneo s/reg",v:P.filter(p=>p.sangre==="Sin registrar").length,color:"#5d6a62"},
+    {k:"Sin novedades",        v:P.filter(p=>!["alergias","medicacion","patologias","dieta"].some(k=>(p[k]||"").trim())).length, color:"#2e7d32"}
+  ]);
+
+  /* Alistamiento */
+  barras("#gAlistamiento", !P.length? [] : [
+    {k:"Anexo 27 apto A",   v:P.filter(p=>p.anexo27).length},
+    {k:"Credencial O. Soc.",v:P.filter(p=>p.credencial).length},
+    {k:"Kit primeros aux.", v:P.filter(p=>p.kitPrimAux).length},
+    {k:"Equipo de campaña", v:P.filter(p=>p.equipoCampania).length}
+  ], {pie:"Sobre un total de "+P.length+" efectivos. Control de responsabilidad de comando."});
+
+  /* Alertas */
+  const alertas = [];
+  REQUISITOS.forEach(r=>{
+    const faltan = P.filter(p=>!requisitoCumplido(p,r));
+    if(faltan.length) alertas.push({c: faltan.length===P.length? "bad":"warn", t:"Adeudan "+r.n,
+      d: faltan.length+" de "+P.length+" efectivo(s). "+(faltan.length<=6? faltan.map(nombreCompleto).join("; ") : "Ver la planilla Control de documentación.")});
+  });
+  const sinList = P.filter(p=>p.fueraListado);
+  if(sinList.length) alertas.push({c:"bad", t:"No figuran en el listado integral vigente",
+    d:sinList.length+" legajo(s) marcados en rojo: "+sinList.slice(0,8).map(nombreCompleto).join("; ")+
+      (sinList.length>8?" y otros":"")+". Se conservan con su fotografía y documentación hasta que el comando resuelva la baja."});
+  const noApt = P.filter(p=>["C","D"].includes(aptoEfectivo(p)));
+  if(noApt.length) alertas.push({c:"bad", t:"Personal no apto", d:noApt.length+" efectivo(s) con apto C o D: "+noApt.slice(0,6).map(nombreCompleto).join("; ")+(noApt.length>6?"…":"")});
+  const venci = P.filter(aptoVencido);
+  if(venci.length) alertas.push({c:"warn", t:"Apto médico vencido", d:venci.length+" efectivo(s): "+venci.slice(0,6).map(nombreCompleto).join("; ")+(venci.length>6?"…":"")});
+  const licVenc = P.filter(p=>p.licVence && new Date(p.licVence+"T00:00:00") < new Date("2026-10-18T00:00:00"));
+  if(licVenc.length) alertas.push({c:"bad", t:"Licencia de conducir vencida al 18 Oct 26",
+    d:licVenc.length+" conductor(es): "+licVenc.slice(0,6).map(nombreCompleto).join("; ")+(licVenc.length>6?"…":"")});
+  const verif = P.filter(p=>p.verificarNombre);
+  if(verif.length) alertas.push({c:"info", t:"Apellido y nombre a verificar",
+    d:verif.length+" legajo(s) importados del listado cuyo apellido no pudo separarse con certeza. La denominación original figura en el campo «tal como consta en el listado»."});
+  const sinAnexo = P.filter(p=>!p.anexo27);
+  if(sinAnexo.length) alertas.push({c:"warn", t:"Anexo 27 sin actualizar", d:sinAnexo.length+" efectivo(s) sin apto “A” registrado. Control de responsabilidad de comando."});
+  const sinCred = P.filter(p=>!p.credencial);
+  if(sinCred.length) alertas.push({c:"warn", t:"Sin credencial de obra social", d:sinCred.length+" efectivo(s). Requisito del Anexo 1, Instrucciones de coordinación."});
+  const sinEq = P.filter(p=>!p.equipoCampania || !p.kitPrimAux);
+  if(sinEq.length) alertas.push({c:"warn", t:"Equipo individual incompleto", d:sinEq.length+" efectivo(s) sin kit de primeros auxilios y/o equipo de campaña al completo."});
+  const sinArma = P.filter(p=>p.armamento && p.armamento!=="Sin asignar" && !(p.armaNro||"").trim());
+  if(sinArma.length) alertas.push({c:"bad", t:"Armamento sin número de serie", d:sinArma.length+" efectivo(s) con arma asignada y sin Nro registrado."});
+  const dupArma = new Map();
+  P.forEach(p=>{ const k=(p.armaNro||"").trim().toUpperCase(); if(k) dupArma.set(k,(dupArma.get(k)||0)+1); });
+  const dups = [...dupArma].filter(([,v])=>v>1);
+  if(dups.length) alertas.push({c:"bad", t:"Números de armamento duplicados", d:dups.map(([k,v])=>k+" ("+v+")").join(", ")});
+  const dupDni = new Map();
+  P.forEach(p=>{ const k=(p.dni||"").trim(); if(k){ if(!dupDni.has(k)) dupDni.set(k,[]); dupDni.get(k).push(p); } });
+  const mismoEf = [], distinto = [];
+  [...dupDni].filter(([,v])=>v.length>1).forEach(([k,v])=>{
+    const ap = new Set(v.map(x=>(x.apellido||"").toUpperCase()));
+    (ap.size>1? distinto : mismoEf).push(k+" — "+v.map(x=>x.lista+": "+nombreCompleto(x)).join(" / "));
+  });
+  if(distinto.length) alertas.push({c:"bad", t:"DNI repetido con distinto apellido",
+    d:"Inconsistencia del listado de origen, a verificar. "+distinto.join(" · ")});
+  if(mismoEf.length) alertas.push({c:"info", t:"Efectivos en más de una lista",
+    d:mismoEf.length+" efectivo(s) figuran como titular y suplente a la vez: "+mismoEf.join(" · ")});
+  const sinGrado = P.filter(p=>p.grado==="S/D");
+  if(sinGrado.length) alertas.push({c:"warn", t:"Grado a determinar", d:sinGrado.map(nombreCompleto).join("; ")});
+  const sinPuesto = P.filter(p=>!p.orgId);
+  if(sinPuesto.length) alertas.push({c:"info", t:"Sin puesto en el organigrama", d:sinPuesto.length+" efectivo(s) sin dependencia asignada."});
+
+  $("#alertas").innerHTML = alertas.length
+    ? '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">'+alertas.map(a=>
+        `<div style="border-left:3px solid var(--${a.c==='bad'?'bad':a.c==='warn'?'warn':'info'});padding:2px 0 2px 12px">
+          <b style="font-size:13px">${esc(a.t)}</b>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${esc(a.d)}</div></div>`).join("")+'</div>'
+    : '<div class="vacio">Sin novedades. Todo el personal cargado reúne la documentación y los requisitos de alistamiento.</div>';
+}
+
+/* ============================================================
+   6. VISTA PERSONAL
+   ============================================================ */
+function opciones(sel, valores, primera, valActual){
+  sel.innerHTML = (primera!=null? `<option value="">${esc(primera)}</option>`:"") +
+    valores.map(v=>{const val=typeof v==="object"?v.v:v, tx=typeof v==="object"?v.t:v;
+      return `<option value="${esc(val)}"${val===valActual?" selected":""}>${esc(tx)}</option>`;}).join("");
+}
+
+function iniciarFiltros(){
+  opciones($("#fGrado"), GRADOS.map(g=>({v:g.c,t:g.c+" — "+g.n})), "Todos");
+  opciones($("#fGenero"), GENEROS, "Todos");
+  opciones($("#fApto"), APTOS.map(a=>({v:a.c,t:a.n})), "Todos");
+  opciones($("#fEspecialidad"), ESPECIALIDADES, "Todas");
+  opciones($("#fDoc"), ESTADOS_DOC.concat(REQUISITOS.map(r=>({v:"falta:"+r.k, t:"Adeuda "+r.n}))), "Toda");
+  opciones($("#fLista"), LISTAS, "Todas");
+  opciones($("#fElemento"), orgPlano().map(o=>({v:o.id,t:" ".repeat(o.prof*2)+o.n})), "Todos");
+}
+
+function filtrados(){
+  const q  = ($("#fBuscar").value||"").trim().toLowerCase();
+  const fg = $("#fGrado").value, fx = $("#fGenero").value, fa = $("#fApto").value;
+  const fe = $("#fElemento").value, fs = $("#fEspecialidad").value;
+  const fd = $("#fDoc").value, fl = $("#fLista").value, fv = $("#fListado").value;
+  const rama = fe? new Set(orgDescendientes(fe)) : null;
+  let L = ESTADO.personal.filter(p=>{
+    if(fg && p.grado!==fg) return false;
+    if(fx && p.genero!==fx) return false;
+    if(fa && aptoEfectivo(p)!==fa) return false;
+    if(fs && p.especialidad!==fs) return false;
+    if(fl && p.lista!==fl) return false;
+    if(fv==="si" && p.fueraListado) return false;
+    if(fv==="no" && !p.fueraListado) return false;
+    if(fd){
+      if(fd.startsWith("falta:")){
+        const r = REQUISITOS.find(x=>x.k===fd.slice(6));
+        if(r && requisitoCumplido(p,r)) return false;
+      }else if(docsEstado(p).estado!==fd) return false;
+    }
+    if(rama && !rama.has(p.elementoId) && !rama.has(p.orgId)) return false;
+    if(ESTADO.filtroOrg){
+      const r = new Set(orgDescendientes(ESTADO.filtroOrg));
+      if(!r.has(p.orgId) && !r.has(p.elementoId)) return false;
+    }
+    if(q){
+      const blob = [p.apellido,p.nombre,p.nombreListado,p.dni,p.cuil,p.mi,p.cargo,p.rolCombate,p.especialidad,
+        p.especialidadDetalle,p.destino,p.armamento,p.armaNro,p.banco,
+        orgNombre(p.orgId),orgNombre(p.elementoId),p.alergias,(p.cursos||[]).join(" ")].join(" ").toLowerCase();
+      if(!blob.includes(q)) return false;
+    }
+    return true;
+  });
+  const o = $("#fOrden").value;
+  L.sort((a,b)=>{
+    if(o==="apellido") return nombreCompleto(a).localeCompare(nombreCompleto(b),"es");
+    if(o==="elemento") return (orgNombre(a.elementoId)||"zz").localeCompare(orgNombre(b.elementoId)||"zz","es")
+                            || gradoInfo(a.grado).j-gradoInfo(b.grado).j;
+    if(o==="apto") return aptoEfectivo(a).localeCompare(aptoEfectivo(b)) || gradoInfo(a.grado).j-gradoInfo(b.grado).j;
+    if(o==="doc")  return docsEstado(a).ok-docsEstado(b).ok || gradoInfo(a.grado).j-gradoInfo(b.grado).j;
+    return gradoInfo(a.grado).j-gradoInfo(b.grado).j || nombreCompleto(a).localeCompare(nombreCompleto(b),"es");
+  });
+  return L;
+}
+
+function pintarPersonal(){
+  const L = filtrados();
+  $("#contador").textContent = L.length + (L.length===1?" legajo":" legajos") +
+    (L.length!==ESTADO.personal.length? " de "+ESTADO.personal.length : "");
+  $("#fichas").style.display = ESTADO.vistaTabla? "none":"grid";
+  $("#tablaPersonal").style.display = ESTADO.vistaTabla? "block":"none";
+  $("#btnVista").textContent = ESTADO.vistaTabla? "Ver fichas":"Ver tabla";
+
+  if(!L.length){
+    $("#fichas").innerHTML = '<div class="vacio" style="grid-column:1/-1">Sin resultados para los filtros aplicados.</div>';
+    $("#tablaPersonal").innerHTML = '<div class="vacio">Sin resultados.</div>';
+    return;
+  }
+
+  $("#fichas").innerHTML = L.map(p=>{
+    const g = gradoInfo(p.grado), a = aptoInfo(aptoEfectivo(p)), d = docsEstado(p);
+    const foto = p.foto? `<img class="foto" src="${p.foto}" alt="Fotografía de ${esc(nombreCompleto(p))}">`
+                       : `<div class="foto ph">${esc(iniciales(p))}</div>`;
+    return `<article class="ficha${p.fueraListado?" fuera":""}" data-id="${p.id}" tabindex="0">
+      <div class="cab">${foto}<div style="min-width:0;flex:1">
+        <div class="nom">${esc(nombreCompleto(p))}</div>
+        <div class="gr">${esc(g.c)} · ${esc(p.especialidadDetalle||p.especialidad||"—")}</div>
+        <div class="meta">${esc(p.cargo||p.destino||"Sin cargo")}<br>
+          <b>Rol:</b> ${esc(p.rolCombate||"—")}<br>
+          <b>Elem:</b> ${esc(orgNombre(p.orgId)||orgNombre(p.elementoId)||"Sin asignar")}<br>
+          <b>Arma:</b> ${esc(p.armamento==="Sin asignar"?"—":p.armamento)} ${p.armaNro?'<span class="mono">Nro '+esc(p.armaNro)+'</span>':""}
+        </div></div></div>
+      <div class="pie">
+        <span class="chip ${claseDoc(d.estado)}">Doc ${d.ok}/${d.total}</span>
+        <span class="chip ${a.clase}">Apto ${esc(aptoEfectivo(p))}</span>
+        <span class="chip">${esc(p.genero)}</span>
+        ${p.lista!=="Titular"?`<span class="chip info">${esc(p.lista)}</span>`:""}
+        ${p.fueraListado?`<span class="chip bad">No figura en el listado</span>`:""}
+        ${(p.alergias||"").trim()?`<span class="chip bad">Alergias</span>`:""}
+        ${alistamientoOk(p)?`<span class="chip ok">Alistado</span>`:`<span class="chip warn">Alistamiento incompleto</span>`}
+      </div></article>`;
+  }).join("");
+
+  $("#tablaPersonal").innerHTML = `<table><thead><tr>
+    <th>Lista</th><th>Grado</th><th>Apellido y nombre</th><th>DNI</th><th>CUIL</th><th>Género</th>
+    <th>Especialidad</th><th>Cargo</th><th>Rol de combate</th><th>Destino</th><th>Elemento combinado</th>
+    <th>Puesto (organigrama)</th><th>Armamento</th><th>Nro arma</th><th>Nivel instr.</th><th>Apto</th>
+    <th>Vence</th><th>Sangre</th><th>Alergias</th><th>Documentación</th></tr></thead><tbody>${
+    L.map(p=>{const d=docsEstado(p); return `<tr class="${p.fueraListado?"fuera":""}" data-id="${p.id}" style="cursor:pointer">
+      <td>${esc(p.lista)}</td><td>${esc(p.grado)}</td><td><b>${esc(nombreCompleto(p))}</b></td>
+      <td class="mono">${esc(p.dni)}</td><td class="mono">${esc(p.cuil)}</td><td>${esc(p.genero)}</td>
+      <td>${esc(p.especialidad)}</td><td>${esc(p.cargo)}</td><td>${esc(p.rolCombate)}</td>
+      <td>${esc(p.destino)}</td><td>${esc(orgNombre(p.elementoId))}</td><td>${esc(orgNombre(p.orgId))}</td>
+      <td>${esc(p.armamento)}</td><td class="mono">${esc(p.armaNro)}</td><td>${esc(p.vehiculo)}</td>
+      <td>${esc(p.nivel)}</td>
+      <td>${esc(aptoEfectivo(p))}</td><td>${esc(p.aptoVence)}</td><td>${esc(p.sangre)}</td>
+      <td>${esc(p.alergias)}</td>
+      <td><span class="chip ${claseDoc(d.estado)}">${esc(d.estado)} ${d.ok}/${d.total}</span></td>
+      <td>${p.fueraListado?'<b style="color:var(--bad)">NO FIGURA</b>':"Vigente"}</td></tr>`;}).join("")}</tbody></table>`;
+}
+
+/* ============================================================
+   7. MODAL DE LEGAJO
+   ============================================================ */
+function abrirLegajo(id){
+  const p = id? clonar(ESTADO.personal.find(x=>x.id===id)) : legajoVacio();
+  if(!p) return;
+  ESTADO.editandoId = id || null;
+  $("#mTitulo").textContent = id? "Legajo — "+nombreCompleto(p) : "Alta de legajo";
+  $("#mLegajo .caja").classList.toggle("fuera", !!p.fueraListado);
+  $("#btnEliminar").style.display = id? "inline-flex":"none";
+  const orgOpts = v => orgPlano().map(o=>`<option value="${o.id}"${o.id===v?" selected":""}>${esc(" ".repeat(o.prof*2)+o.n)}</option>`).join("");
+  const elemOpts = v => elementosCombinados().map(o=>`<option value="${o.id}"${o.id===v?" selected":""}>${esc(" ".repeat((o.prof-1)*2)+o.n)}</option>`).join("");
+  const sel = (id_,arr,v,extra="") => `<select id="${id_}" ${extra}>${arr.map(o=>{const val=typeof o==="object"?o.v:o,t=typeof o==="object"?o.t:o;
+     return `<option value="${esc(val)}"${val===v?" selected":""}>${esc(t)}</option>`;}).join("")}</select>`;
+  /* Los roles del listado son libres: se ofrece el catálogo sin impedir otro valor */
+  const rolesUsados = [...new Set(ESTADO.personal.map(x=>x.rolCombate).filter(Boolean).concat(ROLES_COMBATE))].sort((a,b)=>a.localeCompare(b,"es"));
+  const d = docsEstado(p);
+
+  $("#mCuerpo").innerHTML = `
+  ${p.fueraListado? `<div class="aviso" style="border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,transparent);margin-bottom:14px">
+     <b style="color:var(--bad)">Este efectivo no figura en el listado integral vigente.</b> Se conserva su legajo,
+     con fotografía y documentación, para que el comando resuelva si corresponde darlo de baja.
+     <label class="chk" style="margin-top:9px"><input type="checkbox" id="e_fueraListado" checked>Mantener la marca de «no figura en el listado»</label></div>` : ""}
+  <fieldset class="fset"><legend>Identificación</legend>
+    <div class="foto-edit">
+      <div class="prevbox${p.foto?" con":""}" id="prevBox"><img id="fotoPrev" alt="Fotografía del legajo"${p.foto?' src="'+p.foto+'"':""}><span>Sin<br>fotografía</span></div>
+      <div style="flex:1">
+        <div class="row"><button class="btn sm" id="btnFoto">Cargar fotografía</button>
+          <button class="btn sm" id="btnFotoDel">Quitar</button></div>
+        <p class="ayuda" style="margin:8px 0 0">La imagen se reduce a 320 px y se almacena dentro del propio
+        archivo de datos, de modo que la ficha viaja completa en el pen drive.</p>
+        <input type="file" id="fotoIn" accept="image/*" style="display:none">
+      </div>
+    </div>
+    <div class="fgrid" style="margin-top:12px">
+      <div class="f"><label for="e_apellido">Apellido *</label><input type="text" id="e_apellido" value="${esc(p.apellido)}"></div>
+      <div class="f"><label for="e_nombre">Nombre(s) *</label><input type="text" id="e_nombre" value="${esc(p.nombre)}"></div>
+      <div class="f full"><label for="e_nombreListado">Tal como consta en el listado${p.verificarNombre?" — verificar la separación de apellido y nombre":""}</label>
+        <input type="text" id="e_nombreListado" value="${esc(p.nombreListado)}"${p.verificarNombre?' style="border-color:var(--warn)"':""}></div>
+      <div class="f"><label for="e_dni">DNI</label><input type="text" id="e_dni" class="mono" value="${esc(p.dni)}"></div>
+      <div class="f"><label for="e_cuil">CUIL</label><input type="text" id="e_cuil" class="mono" value="${esc(p.cuil)}" placeholder="20-00000000-0"></div>
+      <div class="f"><label for="e_mi">Matrícula individual (MI)</label><input type="text" id="e_mi" value="${esc(p.mi)}"></div>
+      <div class="f"><label for="e_nacimiento">Fecha de nacimiento</label><input type="date" id="e_nacimiento" value="${esc(p.nacimiento)}"></div>
+      <div class="f"><label for="e_genero">Género</label>${sel("e_genero",GENEROS,p.genero)}</div>
+      <div class="f"><label for="e_estadoCivil">Estado civil</label><input type="text" id="e_estadoCivil" value="${esc(p.estadoCivil)}"></div>
+      <div class="f"><label for="e_telefono">Teléfono</label><input type="text" id="e_telefono" value="${esc(p.telefono)}"></div>
+      <div class="f"><label for="e_email">Correo electrónico</label><input type="text" id="e_email" value="${esc(p.email)}"></div>
+      <div class="f full"><label for="e_domicilio">Domicilio</label><input type="text" id="e_domicilio" value="${esc(p.domicilio)}"></div>
+      <div class="f"><label for="e_obraSocial">Obra social</label><input type="text" id="e_obraSocial" value="${esc(p.obraSocial)}"></div>
+      <div class="f"><label for="e_obraSocialNro">Nro de credencial</label><input type="text" id="e_obraSocialNro" value="${esc(p.obraSocialNro)}"></div>
+    </div>
+  </fieldset>
+
+  <fieldset class="fset"><legend>Situación de documentación — ${d.ok} de ${d.total} requisitos</legend>
+    <div class="chks">
+      <label class="chk"><input type="checkbox" id="e_docPlanilla" ${p.docPlanilla?"checked":""}>Planilla de datos personales</label>
+      <label class="chk"><input type="checkbox" id="e_docCV" ${p.docCV?"checked":""}>Curriculum Vitae</label>
+      <label class="chk"><input type="checkbox" id="e_docLegajo" ${p.docLegajo?"checked":""}>Resumen de legajo</label>
+    </div>
+    <div class="fgrid" style="margin-top:12px">
+      <div class="f"><label for="e_cbu">CBU (22 dígitos)</label><input type="text" id="e_cbu" class="mono" value="${esc(p.cbu)}"></div>
+      <div class="f"><label for="e_banco">Entidad bancaria</label><input type="text" id="e_banco" value="${esc(p.banco)}" placeholder="Ej.: Banco Nación"></div>
+      <div class="f"><label for="e_emergNombre">Contacto de emergencia — nombre y vínculo</label><input type="text" id="e_emergNombre" value="${esc(p.emergNombre)}"></div>
+      <div class="f"><label for="e_emergTel">Contacto de emergencia — teléfono</label><input type="text" id="e_emergTel" value="${esc(p.emergTel)}"></div>
+    </div>
+    ${d.faltan.length? `<p class="ayuda" style="margin:11px 0 0;color:var(--warn)"><b>Adeuda:</b> ${esc(d.faltan.join(" · "))}</p>`
+                     : `<p class="ayuda" style="margin:11px 0 0;color:var(--ok)"><b>Documentación completa.</b></p>`}
+  </fieldset>
+
+  <fieldset class="fset"><legend>Situación militar y destino</legend>
+    <div class="fgrid">
+      <div class="f"><label for="e_lista">Lista</label>${sel("e_lista",LISTAS,p.lista)}</div>
+      <div class="f"><label for="e_grado">Grado</label>${sel("e_grado",GRADOS.map(g=>({v:g.c,t:g.c+" — "+g.n})),p.grado)}</div>
+      <div class="f"><label for="e_especialidad">Especialidad / escalafón</label>${sel("e_especialidad",ESPECIALIDADES,p.especialidad)}</div>
+      <div class="f"><label for="e_especialidadDetalle">Arma / especialidad según el listado</label>
+        <input type="text" id="e_especialidadDetalle" value="${esc(p.especialidadDetalle)}"></div>
+      <div class="f"><label for="e_cargo">Cargo / función</label><input type="text" id="e_cargo" value="${esc(p.cargo)}" placeholder="Ej.: Jefe de Sección Tiradores"></div>
+      <div class="f"><label for="e_rolCombate">Rol de combate</label>
+        <input type="text" id="e_rolCombate" list="listaRoles" value="${esc(p.rolCombate)}">
+        <datalist id="listaRoles">${rolesUsados.map(r=>`<option value="${esc(r)}">`).join("")}</datalist></div>
+      <div class="f"><label for="e_destino">Destino / unidad de revista</label><input type="text" id="e_destino" value="${esc(p.destino)}"></div>
+      <div class="f full"><label for="e_orgId">Puesto en el organigrama</label>
+        <select id="e_orgId"><option value="">— Sin asignar —</option>${orgOpts(p.orgId)}</select></div>
+      <div class="f full"><label for="e_elementoId">Elemento combinado asignado</label>
+        <select id="e_elementoId"><option value="">— Sin asignar —</option>${elemOpts(p.elementoId)}</select></div>
+      <div class="f"><label for="e_nivel">Nivel de instrucción militar</label>${sel("e_nivel",NIVELES,p.nivel)}</div>
+      <div class="f"><label for="e_licVence">Licencia de conducir — vencimiento</label><input type="date" id="e_licVence" value="${esc(p.licVence)}"></div>
+      <div class="f"><label for="e_licCat">Licencia de conducir — categorías</label><input type="text" id="e_licCat" class="mono" value="${esc(p.licCat)}"></div>
+      <div class="f full"><label for="e_vehiculo">Vehículo asignado (denominación / NI / dominio)</label>
+        <input type="text" id="e_vehiculo" value="${esc(p.vehiculo||"")}"></div>
+      <div class="f full"><label>Cursos y capacitaciones</label>
+        <div class="chks">${CURSOS.map(c=>`<label class="chk"><input type="checkbox" class="e_curso" value="${esc(c)}"${(p.cursos||[]).includes(c)?" checked":""}>${esc(c)}</label>`).join("")}</div></div>
+    </div>
+  </fieldset>
+
+  <fieldset class="fset"><legend>Armamento y material</legend>
+    <div class="fgrid">
+      <div class="f"><label for="e_armamento">Armamento principal</label>${sel("e_armamento",ARMAMENTO,p.armamento)}</div>
+      <div class="f"><label for="e_armaNro">Nro de armamento (serie)</label><input type="text" id="e_armaNro" class="mono" value="${esc(p.armaNro)}"></div>
+      <div class="f"><label for="e_armaAux">Armamento auxiliar</label>${sel("e_armaAux",ARMAMENTO,p.armaAux||"Sin asignar")}</div>
+      <div class="f"><label for="e_armaAuxNro">Nro auxiliar</label><input type="text" id="e_armaAuxNro" class="mono" value="${esc(p.armaAuxNro)}"></div>
+      <div class="f full"><label for="e_equipoOptico">Equipo óptico / visión nocturna / otro material con Nro</label>
+        <input type="text" id="e_equipoOptico" value="${esc(p.equipoOptico)}"></div>
+    </div>
+  </fieldset>
+
+  <fieldset class="fset"><legend>Aptitud psicofísica y estado de salud</legend>
+    <div class="fgrid">
+      <div class="f"><label for="e_apto">Apto médico (Anexo 27)</label>${sel("e_apto",APTOS.map(a=>({v:a.c,t:a.n})),p.apto)}</div>
+      <div class="f"><label for="e_aptoVence">Vencimiento del apto</label><input type="date" id="e_aptoVence" value="${esc(p.aptoVence)}"></div>
+      <div class="f"><label for="e_sangre">Grupo y factor sanguíneo</label>${sel("e_sangre",SANGRE,p.sangre)}</div>
+      <div class="f full"><label for="e_alergias">Alergias</label><input type="text" id="e_alergias" value="${esc(p.alergias)}" placeholder="Ej.: penicilina, picadura de himenópteros"></div>
+      <div class="f full"><label for="e_medicacion">Medicación habitual</label><input type="text" id="e_medicacion" value="${esc(p.medicacion)}"></div>
+      <div class="f full"><label for="e_patologias">Patologías / antecedentes</label><input type="text" id="e_patologias" value="${esc(p.patologias)}"></div>
+      <div class="f"><label for="e_vacunas">Vacunas</label><input type="text" id="e_vacunas" value="${esc(p.vacunas)}"></div>
+      <div class="f"><label for="e_dieta">Dieta especial</label><input type="text" id="e_dieta" value="${esc(p.dieta)}"></div>
+      <div class="f full"><label for="e_saludObs">Observaciones sanitarias</label><textarea id="e_saludObs">${esc(p.saludObs)}</textarea></div>
+    </div>
+  </fieldset>
+
+  <fieldset class="fset"><legend>Alistamiento — Instrucciones de coordinación (Anexo 1)</legend>
+    <div class="chks">
+      <label class="chk"><input type="checkbox" id="e_anexo27" ${p.anexo27?"checked":""}>Anexo 27 actualizado con apto “A”</label>
+      <label class="chk"><input type="checkbox" id="e_credencial" ${p.credencial?"checked":""}>Credencial de obra social</label>
+      <label class="chk"><input type="checkbox" id="e_kitPrimAux" ${p.kitPrimAux?"checked":""}>Kit de primeros auxilios</label>
+      <label class="chk"><input type="checkbox" id="e_equipoCampania" ${p.equipoCampania?"checked":""}>Equipo de campaña individual al completo</label>
+    </div>
+    <div class="f full" style="margin-top:12px"><label for="e_observaciones">Observaciones generales</label>
+      <textarea id="e_observaciones">${esc(p.observaciones)}</textarea></div>
+  </fieldset>`;
+
+  const ponerFoto = src=>{
+    const img=$("#fotoPrev"), caja=$("#prevBox");
+    if(src){ img.src=src; caja.classList.add("con"); }
+    else { img.removeAttribute("src"); caja.classList.remove("con"); }
+  };
+  $("#btnFoto").onclick = ()=>$("#fotoIn").click();
+  $("#btnFotoDel").onclick = ()=>ponerFoto("");
+  $("#fotoIn").onchange = e=>{
+    const f = e.target.files[0]; if(!f) return;
+    const fr = new FileReader();
+    fr.onload = ev=>{
+      const im = new Image();
+      im.onload = ()=>{
+        const max=320, k=Math.min(1,max/Math.max(im.width,im.height));
+        const cv=document.createElement("canvas");
+        cv.width=Math.round(im.width*k); cv.height=Math.round(im.height*k);
+        cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);
+        ponerFoto(cv.toDataURL("image/jpeg",0.78));
+      };
+      im.src = ev.target.result;
+    };
+    fr.readAsDataURL(f);
+  };
+  $("#mLegajo").classList.add("on");
+  setTimeout(()=>$("#e_apellido").focus(),40);
+}
+
+function leerLegajo(){
+  const base = ESTADO.editandoId
+    ? clonar(ESTADO.personal.find(x=>x.id===ESTADO.editandoId))
+    : legajoVacio();
+  const v = k => { const el=$("#e_"+k); return el? el.value : base[k]; };
+  const b = k => { const el=$("#e_"+k); return el? el.checked : !!base[k]; };
+  ["apellido","nombre","nombreListado","dni","cuil","mi","nacimiento","genero","estadoCivil","domicilio",
+   "telefono","email","emergNombre","emergTel","obraSocial","obraSocialNro","cbu","banco",
+   "lista","grado","especialidad","especialidadDetalle","cargo","rolCombate","destino",
+   "orgId","elementoId","nivel","licVence","licCat","vehiculo","armamento","armaNro","armaAux","armaAuxNro","equipoOptico",
+   "apto","aptoVence","sangre","alergias","medicacion","patologias","vacunas","dieta","saludObs","observaciones"
+  ].forEach(k=>base[k]=v(k));
+  ["docPlanilla","docCV","docLegajo","anexo27","credencial","kitPrimAux","equipoCampania"].forEach(k=>base[k]=b(k));
+  base.fueraListado = $("#e_fueraListado") ? $("#e_fueraListado").checked : !!base.fueraListado;
+  base.cursos = $$(".e_curso").filter(c=>c.checked).map(c=>c.value);
+  base.foto = $("#fotoPrev").getAttribute("src") || "";
+  if(base.nombreListado && base.apellido && base.nombre) base.verificarNombre = false;
+  base.actualizado = new Date().toISOString();
+  return base;
+}
+
+/* ============================================================
+   8. VISTA ORGANIGRAMA
+   ============================================================ */
+const colapsados = new Set();
+
+function contarNodo(id){
+  const r = new Set(orgDescendientes(id));
+  return ESTADO.personal.filter(p=>r.has(p.orgId)||r.has(p.elementoId)).length;
+}
+
+function pintarArbol(){
+  const render = nodos => "<ul>"+nodos.map(n=>{
+    const hijos = n.h && n.h.length;
+    const cerrado = colapsados.has(n.id);
+    return `<li>
+      <div class="nodo${ESTADO.nodoSel===n.id?" sel":""}" data-id="${n.id}" data-tipo="${n.tipo||""}" tabindex="0">
+        <span class="tog" data-tog="${n.id}">${hijos?(cerrado?"▶":"▼"):"·"}</span>
+        <span class="nm">${esc(n.n)}</span>
+        <span class="cnt">${contarNodo(n.id)}</span>
+      </div>
+      ${hijos && !cerrado ? render(n.h) : ""}
+    </li>`;
+  }).join("")+"</ul>";
+  $("#arbol").innerHTML = ESTADO.org.map(r=>{
+    const cerrado = colapsados.has(r.id);
+    return `<li>
+      <div class="nodo${ESTADO.nodoSel===r.id?" sel":""}" data-id="${r.id}" data-tipo="raiz" tabindex="0">
+        <span class="tog" data-tog="${r.id}">${r.h&&r.h.length?(cerrado?"▶":"▼"):"·"}</span>
+        <span class="nm">${esc(r.n)}</span><span class="cnt">${contarNodo(r.id)}</span></div>
+      ${r.h && !cerrado ? render(r.h) : ""}</li>`;
+  }).join("");
+}
+
+function pintarDetalleOrg(){
+  const id = ESTADO.nodoSel;
+  if(!id){ $("#orgTitulo").textContent="Seleccione una dependencia"; $("#orgSub").textContent="";
+    $("#orgDetalle").innerHTML='<div class="vacio">Elija un elemento del árbol para ver y asignar su personal.</div>'; return; }
+  const nombre = orgNombre(id);
+  const rama = new Set(orgDescendientes(id));
+  const propios = ESTADO.personal.filter(p=>p.orgId===id);
+  const enRama  = ESTADO.personal.filter(p=>rama.has(p.orgId)||rama.has(p.elementoId));
+  $("#orgTitulo").textContent = nombre;
+  $("#orgSub").textContent = propios.length+" en el puesto · "+enRama.length+" en la dependencia y subordinados";
+
+  const porCat = CATEGORIAS.map(c=>({k:c, v:enRama.filter(p=>gradoInfo(p.grado).cat===c).length})).filter(d=>d.v);
+  const sinAsignar = ESTADO.personal.filter(p=>!p.orgId);
+
+  $("#orgDetalle").innerHTML = `
+    <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
+      <div class="kpi"><div class="n">${enRama.length}</div><div class="t">Efectivos</div></div>
+      ${porCat.map(c=>`<div class="kpi"><div class="n">${c.v}</div><div class="t">${esc(c.k)}</div></div>`).join("")}
+      <div class="kpi ok"><div class="n">${enRama.filter(p=>aptoEfectivo(p)==="A").length}</div><div class="t">Apto A</div></div>
+      <div class="kpi bad"><div class="n">${enRama.filter(p=>["C","D"].includes(aptoEfectivo(p))).length}</div><div class="t">No aptos</div></div>
+    </div>
+
+    <div class="sec-tit" style="margin:18px 0 8px"><h2 style="font-size:14px">Personal asignado a este puesto</h2></div>
+    ${propios.length? `<div class="tabla-wrap"><table><thead><tr><th>Grado</th><th>Apellido y nombre</th>
+      <th>Cargo</th><th>Rol de combate</th><th>Apto</th><th></th></tr></thead><tbody>${
+      propios.sort((a,b)=>gradoInfo(a.grado).j-gradoInfo(b.grado).j).map(p=>`<tr>
+        <td>${esc(p.grado)}</td><td><b>${esc(nombreCompleto(p))}</b></td><td>${esc(p.cargo)}</td>
+        <td>${esc(p.rolCombate)}</td><td><span class="chip ${aptoInfo(aptoEfectivo(p)).clase}">${esc(aptoEfectivo(p))}</span></td>
+        <td><button class="btn sm" data-ver="${p.id}">Abrir</button>
+            <button class="btn sm" data-quitar="${p.id}">Quitar</button></td></tr>`).join("")}</tbody></table></div>`
+      : '<div class="vacio">Sin personal asignado a este puesto.</div>'}
+
+    <div class="sec-tit" style="margin:18px 0 8px"><h2 style="font-size:14px">Asignar personal a “${esc(nombre)}”</h2></div>
+    <div class="row">
+      <select id="orgAsignar" style="flex:1;min-width:220px">
+        <option value="">— Seleccionar efectivo —</option>
+        ${ESTADO.personal.filter(p=>p.orgId!==id).sort((a,b)=>gradoInfo(a.grado).j-gradoInfo(b.grado).j)
+          .map(p=>`<option value="${p.id}">${esc(p.grado+" "+nombreCompleto(p)+(p.orgId?"  ("+orgNombre(p.orgId)+")":"  (sin puesto)"))}</option>`).join("")}
+      </select>
+      <button class="btn pri" id="btnAsignar">Asignar puesto</button>
+      <button class="btn" id="btnAsignarElem">Asignar como elemento combinado</button>
+      <button class="btn" id="btnFiltrarAqui">Ver en Personal</button>
+    </div>
+    ${sinAsignar.length? `<p class="ayuda" style="margin-top:9px">${sinAsignar.length} efectivo(s) aún sin puesto en el organigrama.</p>`:""}`;
+}
+
+/* ============================================================
+   9. VISTA PLANILLAS
+   ============================================================ */
+let soloFaltantes = false;
+
+function pintarPlanillas(){
+  const P = ESTADO.personal;
+  const filas = orgPlano().filter(o=>o.id!=="fdr"&&o.id!=="arandu");
+
+  /* --- Planilla numérica --- */
+  const usados = filas.filter(o=>contarNodo(o.id)>0);
+  const cuerpo = usados.map(o=>{
+    const rama = new Set(orgDescendientes(o.id));
+    const L = P.filter(p=>rama.has(p.orgId)||rama.has(p.elementoId));
+    const c = cat => L.filter(p=>gradoInfo(p.grado).cat===cat).length;
+    const dc = L.filter(p=>docsEstado(p).estado==="Completa").length;
+    return `<tr><td style="padding-left:${11+o.prof*14}px">${esc(o.n)}</td>
+      <td class="num">${c("Oficial")}</td><td class="num">${c("Suboficial")}</td>
+      <td class="num">${c("Tropa")}</td><td class="num">${c("Civil")}</td>
+      <td class="num"><b>${L.length}</b></td>
+      <td class="num">${L.filter(p=>p.lista==="Titular").length}</td>
+      <td class="num">${L.filter(p=>p.lista!=="Titular").length}</td>
+      <td class="num">${dc}</td><td class="num">${L.length-dc}</td>
+      <td class="num">${L.filter(p=>aptoEfectivo(p)==="A").length}</td>
+      <td class="num">${L.filter(p=>["C","D","S"].includes(aptoEfectivo(p))).length}</td>
+      <td class="num">${(()=>{const n=L.filter(p=>p.fueraListado).length; return n? '<b style="color:var(--bad)">'+n+'</b>':"0";})()}</td></tr>`;
+  }).join("");
+  const tot = cat => P.filter(p=>gradoInfo(p.grado).cat===cat).length;
+  const totDc = P.filter(p=>docsEstado(p).estado==="Completa").length;
+  $("#planillaNumerica").innerHTML = P.length? `<table><thead><tr>
+      <th>Elemento</th><th class="num">Of</th><th class="num">Subof</th><th class="num">Tropa</th>
+      <th class="num">Civil</th><th class="num">Total</th><th class="num">Titulares</th><th class="num">Supl/Cond</th>
+      <th class="num">Doc completa</th><th class="num">Doc pendiente</th>
+      <th class="num">Apto A</th><th class="num">Sin apto</th><th class="num">No figuran</th></tr></thead>
+      <tbody>${cuerpo||'<tr><td colspan="13" style="text-align:center;color:var(--muted)">Sin asignaciones al organigrama</td></tr>'}</tbody>
+      <tfoot><tr><td>TOTAL GENERAL</td><td class="num">${tot("Oficial")}</td><td class="num">${tot("Suboficial")}</td>
+      <td class="num">${tot("Tropa")}</td><td class="num">${tot("Civil")}</td><td class="num">${P.length}</td>
+      <td class="num">${P.filter(p=>p.lista==="Titular").length}</td>
+      <td class="num">${P.filter(p=>p.lista!=="Titular").length}</td>
+      <td class="num">${totDc}</td><td class="num">${P.length-totDc}</td>
+      <td class="num">${P.filter(p=>aptoEfectivo(p)==="A").length}</td>
+      <td class="num">${P.filter(p=>["C","D","S"].includes(aptoEfectivo(p))).length}</td>
+      <td class="num">${P.filter(p=>p.fueraListado).length}</td></tr></tfoot></table>`
+    : '<div class="vacio">Sin personal cargado.</div>';
+
+  /* --- Control de documentación --- */
+  const marca = ok => ok? '<span style="color:var(--ok);font-weight:700">SÍ</span>'
+                        : '<span style="color:var(--bad);font-weight:700">NO</span>';
+  let LD = [...P].sort((a,b)=>docsEstado(a).ok-docsEstado(b).ok
+                    || (orgNombre(a.orgId)||"").localeCompare(orgNombre(b.orgId)||"","es")
+                    || gradoInfo(a.grado).j-gradoInfo(b.grado).j);
+  if(soloFaltantes) LD = LD.filter(p=>docsEstado(p).estado!=="Completa");
+  $("#btnSoloFaltantes").textContent = soloFaltantes? "Ver todo el personal":"Ver sólo los que adeudan";
+  $("#planillaDocumentacion").innerHTML = LD.length? `<table><thead><tr>
+      <th>Grado</th><th>Apellido y nombre</th><th>DNI</th><th>Elemento</th>
+      ${REQUISITOS.map(r=>`<th class="num">${esc(r.n)}</th>`).join("")}
+      <th class="num">Reúne</th><th>Estado</th><th>CUIL</th><th>CBU</th><th>Entidad bancaria</th>
+      <th>Contacto de emergencia</th></tr></thead><tbody>${
+      LD.map(p=>{const d=docsEstado(p); return `<tr class="${p.fueraListado?"fuera":""}" data-id="${p.id}" style="cursor:pointer">
+        <td>${esc(p.grado)}</td><td><b>${esc(nombreCompleto(p))}</b></td><td class="mono">${esc(p.dni)}</td>
+        <td>${esc(orgNombre(p.orgId)||orgNombre(p.elementoId))}</td>
+        ${REQUISITOS.map(r=>`<td class="num">${marca(requisitoCumplido(p,r))}</td>`).join("")}
+        <td class="num">${d.ok}/${d.total}</td>
+        <td><span class="chip ${claseDoc(d.estado)}">${esc(d.estado)}</span></td>
+        <td class="mono">${esc(p.cuil)}</td><td class="mono">${esc(p.cbu)}</td><td>${esc(p.banco)}</td>
+        <td>${esc(p.emergNombre)} ${esc(p.emergTel)}</td></tr>`;}).join("")}</tbody></table>`
+    : '<div class="vacio">'+(soloFaltantes? "Ningún efectivo adeuda documentación.":"Sin personal cargado.")+'</div>';
+
+  /* --- Armamento --- */
+  const arm = P.filter(p=>p.armamento && p.armamento!=="Sin asignar")
+               .sort((a,b)=>(a.armamento||"").localeCompare(b.armamento||"","es")||gradoInfo(a.grado).j-gradoInfo(b.grado).j);
+  $("#planillaArmamento").innerHTML = arm.length? `<table><thead><tr>
+      <th>Armamento</th><th>Nro de serie</th><th>Grado</th><th>Apellido y nombre</th><th>Elemento</th>
+      <th>Rol de combate</th><th>Auxiliar</th><th>Nro aux.</th><th>Óptica / otro</th><th>Vehículo</th></tr></thead><tbody>${
+      arm.map(p=>`<tr class="${p.fueraListado?"fuera":""}" data-id="${p.id}" style="cursor:pointer"><td>${esc(p.armamento)}</td>
+        <td class="mono">${p.armaNro?esc(p.armaNro):'<span style="color:var(--bad)">SIN REGISTRAR</span>'}</td>
+        <td>${esc(p.grado)}</td><td><b>${esc(nombreCompleto(p))}</b></td>
+        <td>${esc(orgNombre(p.orgId)||orgNombre(p.elementoId))}</td><td>${esc(p.rolCombate)}</td>
+        <td>${esc(p.armaAux&&p.armaAux!=="Sin asignar"?p.armaAux:"—")}</td><td class="mono">${esc(p.armaAuxNro)}</td>
+        <td>${esc(p.equipoOptico)}</td><td>${esc(p.vehiculo)}</td></tr>`).join("")}</tbody></table>`
+    : '<div class="vacio">Sin armamento asignado.</div>';
+
+  /* --- Sanidad --- */
+  const san = P.filter(p=>(p.alergias||p.medicacion||p.patologias||p.dieta||"").trim() || aptoEfectivo(p)!=="A");
+  $("#planillaSanidad").innerHTML = san.length? `<table><thead><tr>
+      <th>Grado</th><th>Apellido y nombre</th><th>Elemento</th><th>Apto</th><th>Vence</th><th>Sangre</th>
+      <th>Alergias</th><th>Medicación</th><th>Patologías</th><th>Dieta</th><th>Obra social</th><th>Emergencia</th></tr></thead><tbody>${
+      san.sort((a,b)=>aptoEfectivo(a).localeCompare(aptoEfectivo(b))).map(p=>`<tr class="${p.fueraListado?"fuera":""}" data-id="${p.id}" style="cursor:pointer">
+        <td>${esc(p.grado)}</td><td><b>${esc(nombreCompleto(p))}</b></td>
+        <td>${esc(orgNombre(p.orgId)||orgNombre(p.elementoId))}</td>
+        <td><span class="chip ${aptoInfo(aptoEfectivo(p)).clase}">${esc(aptoEfectivo(p))}</span></td>
+        <td>${esc(p.aptoVence)}${aptoVencido(p)?' <span class="chip bad">vencido</span>':""}</td>
+        <td class="mono">${esc(p.sangre)}</td><td>${esc(p.alergias)}</td><td>${esc(p.medicacion)}</td>
+        <td>${esc(p.patologias)}</td><td>${esc(p.dieta)}</td>
+        <td>${esc(p.obraSocial)} ${esc(p.obraSocialNro)}</td>
+        <td>${esc(p.emergNombre)} ${esc(p.emergTel)}</td></tr>`).join("")}</tbody></table>`
+    : '<div class="vacio">Sin novedades sanitarias registradas.</div>';
+
+  /* --- Rol de combate --- */
+  const rol = [...P].sort((a,b)=>(orgNombre(a.orgId)||"").localeCompare(orgNombre(b.orgId)||"","es")
+                              || gradoInfo(a.grado).j-gradoInfo(b.grado).j);
+  $("#planillaRol").innerHTML = rol.length? `<table><thead><tr>
+      <th>Elemento</th><th>Lista</th><th>Grado</th><th>Apellido y nombre</th><th>Arma / esp</th>
+      <th>Rol de combate</th><th>Destino</th><th>Nivel</th><th>Cursos</th></tr></thead><tbody>${
+      rol.map(p=>`<tr class="${p.fueraListado?"fuera":""}" data-id="${p.id}" style="cursor:pointer">
+        <td>${esc(orgNombre(p.orgId)||orgNombre(p.elementoId))}</td><td>${esc(p.lista)}</td>
+        <td>${esc(p.grado)}</td><td><b>${esc(nombreCompleto(p))}</b></td>
+        <td>${esc(p.especialidadDetalle||p.especialidad)}</td><td><b>${esc(p.rolCombate)}</b></td>
+        <td>${esc(p.destino)}</td><td>${esc(p.nivel)}</td>
+        <td style="white-space:normal;max-width:280px">${esc((p.cursos||[]).join(", "))}</td></tr>`).join("")}</tbody></table>`
+    : '<div class="vacio">Sin personal cargado.</div>';
+}
+
+/* ============================================================
+   10. IMPORTACION / EXPORTACION
+   ============================================================ */
+const COLS_CSV = ["lista","grado","apellido","nombre","nombreListado","dni","cuil","mi","nacimiento","genero",
+  "estadoCivil","domicilio","telefono","email","emergNombre","emergTel","obraSocial","obraSocialNro",
+  "cbu","banco","docPlanilla","docCV","docLegajo","documentacion",
+  "especialidad","especialidadDetalle","cargo","rolCombate","destino",
+  "puestoOrganigrama","elementoCombinado","nivel","cursos","licVence","licCat","vehiculo","fueraListado",
+  "armamento","armaNro","armaAux","armaAuxNro","equipoOptico","apto","aptoVence","sangre",
+  "alergias","medicacion","patologias","vacunas","dieta","saludObs",
+  "anexo27","credencial","kitPrimAux","equipoCampania","observaciones"];
+
+function aFilaCsv(p){
+  const o = {...p, puestoOrganigrama:orgNombre(p.orgId), elementoCombinado:orgNombre(p.elementoId),
+             cursos:(p.cursos||[]).join(" | "), documentacion:docsEstado(p).estado};
+  return COLS_CSV.map(c=>{
+    let v = o[c]; if(typeof v==="boolean") v = v?"SI":"NO";
+    v = v==null? "" : String(v);
+    return /[",;\n]/.test(v)? '"'+v.replace(/"/g,'""')+'"' : v;
+  }).join(";");
+}
+function descargar(nombre, contenido, tipo){
+  const b = new Blob([contenido],{type:tipo});
+  const u = URL.createObjectURL(b);
+  const a = document.createElement("a"); a.href=u; a.download=nombre; a.click();
+  setTimeout(()=>URL.revokeObjectURL(u),2000);
+}
+function exportarCsv(lista){
+  const csv = "﻿"+COLS_CSV.join(";")+"\n"+lista.map(aFilaCsv).join("\n");
+  descargar("personal-"+new Date().toISOString().slice(0,10)+".csv", csv, "text/csv;charset=utf-8");
+}
+function exportarJson(){
+  descargar("datos-personal-"+new Date().toISOString().slice(0,10)+".json",
+    JSON.stringify({v:1,generado:new Date().toISOString(),personal:ESTADO.personal,org:ESTADO.org},null,1),
+    "application/json");
+}
+function parsearCsv(txt){
+  const filas=[]; let f=[],c="",q=false;
+  txt = txt.replace(/^﻿/,"");
+  for(let i=0;i<txt.length;i++){
+    const ch=txt[i];
+    if(q){ if(ch==='"'){ if(txt[i+1]==='"'){c+='"';i++;} else q=false; } else c+=ch; }
+    else if(ch==='"') q=true;
+    else if(ch===";"||ch===","){ f.push(c); c=""; }
+    else if(ch==="\n"){ f.push(c); filas.push(f); f=[]; c=""; }
+    else if(ch!=="\r") c+=ch;
+  }
+  if(c||f.length){ f.push(c); filas.push(f); }
+  return filas.filter(r=>r.some(x=>x.trim()!==""));
+}
+function importarCsv(txt){
+  const filas = parsearCsv(txt);
+  if(filas.length<2){ toast("El CSV no contiene filas de datos."); return; }
+  const cab = filas[0].map(h=>h.trim());
+  const idxOrg = new Map(orgPlano().map(o=>[o.n.toLowerCase(), o.id]));
+  let n=0;
+  filas.slice(1).forEach(r=>{
+    const g = k => { const i = cab.indexOf(k); return i<0? "" : (r[i]||"").trim(); };
+    const p = legajoVacio();
+    COLS_CSV.forEach(c=>{
+      if(["puestoOrganigrama","elementoCombinado","cursos","documentacion","fueraListado",
+          "docPlanilla","docCV","docLegajo","anexo27","credencial","kitPrimAux","equipoCampania"].includes(c)) return;
+      const v = g(c); if(v!=="") p[c]=v;
+    });
+    p.cursos = g("cursos").split("|").map(s=>s.trim()).filter(Boolean);
+    ["docPlanilla","docCV","docLegajo","anexo27","credencial","kitPrimAux","equipoCampania","fueraListado"].forEach(c=>{
+      p[c] = /^(si|sí|s|1|true|x)$/i.test(g(c));
+    });
+    p.orgId      = idxOrg.get(g("puestoOrganigrama").toLowerCase()) || "";
+    p.elementoId = idxOrg.get(g("elementoCombinado").toLowerCase()) || "";
+    if(!p.apellido && !p.nombre) return;
+    const ex = p.dni? ESTADO.personal.find(x=>x.dni===p.dni && x.lista===p.lista) : null;
+    if(ex){ Object.assign(ex, p, {id:ex.id, foto:ex.foto}); } else { ESTADO.personal.push(p); }
+    n++;
+  });
+  guardar(); pintarTodo(); toast(n+" legajo(s) importado(s) desde CSV.");
+}
+
+/* Escudo del Comando de la Fuerza de Despliegue Rápido, embebido para uso sin conexión */
+const ESCUDO_B64 = "data:image/png;base64,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kujo0aMmaz9ERD/88APNmzePZs2aRampqfTw4UPavn07EfFGh59++olOnDhBLVq0oKtXr1JJSQkBoG+//Za++eYbAkClpaX08ccf02effUaffvopjRs3jg4ePEgffvgh7d69m7766isaNGgQjRs3jk6cOEFERNu2bSMinjlfffVVys7Odst3SyFtYzaYwfnYDSwuutLuXHYlKtElzONIWNwmpEDvbM3J5mCg5iPknJoJB7elC+/rYV2/jYGLgjkC8FOSSmzUdAe+//57+uCDD2jp0qUUFxdHJ0+eFJ9dunSJ+vfvT6NHjzZh5rS0NFHtHDt2LDVv3pwOHjxIgYGBNHjwYBo8eDC1aNGCOnToQB4eHhQdHU09evSgvXv30pgxY6i4uJheeuklioyMpAULFtBnn31Gy5cvpylTptC3335LSUlJNHPmTHr48KHbvlsKeTs7K53Am62tMVGcLe0Gps4D6TbSMk1MJzAXQcXWDJunrXMclypkWhfGONV2nYZtId8I8NYVS6a0xeD9/yxZC9WUEQUgIi4uDiEhIQgMDERGRgYyMzPdasFbt24dDAYD7ty5Ay8vL9SsWRPvvfcefH19ERYWBm9vbzRr1gwAoNfrUbt2bQQHB6Nhw4a4dOkSHjx4gG7duqFChQqiNbBy5cq4ePEiatWqhePHj6N27dr48MMPER0djevXr2PBggXIzs5G9erVcfnyZURFReHll19G3bp1cf36dYwaNQo6nQ6enp5u+24ppG0NAHXr1i0Gv8AfaG9eguU3E+a0sgo8LRpU5OEHXv37D4BlxC/UWkobAp6h2InwieBpv67V96wxE8dxWvC66TYi6stxXDR4y0lDpQ/gOC4e/AevBrDJFiMIjRQO3owu93QAgL5EtM1aHlby9gOQGRAQoElNTcW2bdvQt29fREREICoqypEs7cIff/yBwsJC5OXloWrVqli6dCkWLlyIatWqYcmSJWjWrBkuXLiAhIQE7Nu3D6+99hoMBgOqVq2KwMBAfPDBB7h58yYeP34MAPD09IRWq8VXX32FFi1aID8/Hzt27ECzZs0we/ZsXL9+HTqdDlu2bMHBgwcRFBSEJk2aoF27dnj22Wfd/r1yyNub47jF4LUch/pUGHyjwDtKL4OTA62Nspj1OpeImknKtlp3W8ykB692DSOiVYINvwBADwAFJHHxEBiPeUcA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";
+
+/* ============================================================
+   11. IMPRESION DE FICHA INDIVIDUAL
+   ============================================================ */
+function imprimirFicha(p){
+  const g = gradoInfo(p.grado);
+  const fila = (t,v)=>`<tr><th style="text-align:left;width:190px;background:#f0f0ec;padding:5px 8px;border:1px solid #bbb;font-size:11px">${esc(t)}</th><td style="padding:5px 8px;border:1px solid #bbb;font-size:12px">${esc(v||"—")}</td></tr>`;
+  const w = window.open("","_blank","width=880,height=1000");
+  if(!w){ toast("El navegador bloqueó la ventana de impresión."); return; }
+  w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+  <title>Ficha — ${esc(nombreCompleto(p))}</title>
+  <style>body{font-family:Arial,Helvetica,sans-serif;margin:26px;color:#111}
+   h1{font-size:15px;margin:0 0 2px}h2{font-size:11px;margin:0 0 14px;font-weight:normal;color:#555}
+   table{border-collapse:collapse;width:100%;margin-bottom:12px}
+   .enc{display:flex;gap:16px;align-items:flex-start;margin-bottom:14px}
+   .enc img.f{width:110px;height:135px;object-fit:cover;border:1px solid #999}
+   .enc img.e{width:52px;height:52px;object-fit:contain}
+   .tt{font-size:11px;font-weight:bold;background:#333;color:#fff;padding:3px 8px;margin:12px 0 5px}
+   .pie{font-size:9px;color:#666;margin-top:18px;border-top:1px solid #ccc;padding-top:6px}</style></head><body>
+  <div class="enc"><img class="e" src="${ESCUDO_B64}" alt="">
+    <div style="flex:1"><h1>FICHA INDIVIDUAL DE PERSONAL</h1>
+      <h2>Cdo FDR — Orden Especial Nro 02/26 — Ejercicio ARANDÚ 26</h2>
+      <div style="font-size:15px;font-weight:bold">${esc(g.c)} ${esc(nombreCompleto(p))}</div>
+      <div style="font-size:12px;color:#444">${esc(p.cargo||"")} ${p.cargo&&p.rolCombate?"·":""} ${esc(p.rolCombate||"")}</div></div>
+    ${p.foto?`<img class="f" src="${p.foto}" alt="">`:""}</div>
+  <div class="tt">IDENTIFICACIÓN</div><table>
+    ${fila("Lista",p.lista)}${fila("Grado",g.c+" — "+g.n)}${fila("DNI",p.dni)}${fila("CUIL",p.cuil)}
+    ${fila("Matrícula individual",p.mi)}
+    ${fila("Fecha de nacimiento",p.nacimiento)}${fila("Género",p.genero)}${fila("Estado civil",p.estadoCivil)}
+    ${fila("Domicilio",p.domicilio)}${fila("Teléfono",p.telefono)}${fila("Correo electrónico",p.email)}
+    ${fila("Contacto de emergencia",(p.emergNombre||"")+" "+(p.emergTel||""))}
+    ${fila("Obra social",(p.obraSocial||"")+" "+(p.obraSocialNro||""))}
+    ${fila("CBU",p.cbu)}${fila("Entidad bancaria",p.banco)}</table>
+  <div class="tt">SITUACIÓN DE DOCUMENTACIÓN — ${docsEstado(p).ok} DE ${docsEstado(p).total}</div><table>
+    ${REQUISITOS.map(r=>fila(r.n, requisitoCumplido(p,r)?"SÍ":"NO")).join("")}
+    ${fila("Estado", docsEstado(p).estado)}
+    ${docsEstado(p).faltan.length? fila("Adeuda", docsEstado(p).faltan.join(", ")) : ""}</table>
+  <div class="tt">SITUACIÓN MILITAR Y DESTINO</div><table>
+    ${fila("Especialidad / escalafón",p.especialidad)}${fila("Arma / esp según listado",p.especialidadDetalle)}
+    ${fila("Cargo / función",p.cargo)}${fila("Rol de combate",p.rolCombate)}
+    ${fila("Destino / unidad de revista",p.destino)}${fila("Puesto en el organigrama",orgNombre(p.orgId))}
+    ${fila("Elemento combinado",orgNombre(p.elementoId))}${fila("Nivel de instrucción militar",p.nivel)}
+    ${fila("Cursos",(p.cursos||[]).join(", "))}
+    ${p.licVence||p.licCat? fila("Licencia de conducir",(p.licVence||"")+" "+(p.licCat||"")) : ""}
+    ${p.vehiculo? fila("Vehículo asignado",p.vehiculo) : ""}
+    ${p.fueraListado? fila("Situación en el listado","NO FIGURA en el listado integral vigente") : ""}</table>
+  <div class="tt">ARMAMENTO Y MATERIAL</div><table>
+    ${fila("Armamento principal",p.armamento)}${fila("Nro de armamento",p.armaNro)}
+    ${fila("Armamento auxiliar",p.armaAux)}${fila("Nro auxiliar",p.armaAuxNro)}
+    ${fila("Equipo óptico / otro",p.equipoOptico)}</table>
+  <div class="tt">APTITUD PSICOFÍSICA Y ESTADO DE SALUD</div><table>
+    ${fila("Apto médico (Anexo 27)",aptoInfo(aptoEfectivo(p)).n)}${fila("Vencimiento",p.aptoVence)}
+    ${fila("Grupo y factor sanguíneo",p.sangre)}${fila("Alergias",p.alergias)}${fila("Medicación habitual",p.medicacion)}
+    ${fila("Patologías / antecedentes",p.patologias)}${fila("Vacunas",p.vacunas)}${fila("Dieta especial",p.dieta)}
+    ${fila("Observaciones sanitarias",p.saludObs)}</table>
+  <div class="tt">ALISTAMIENTO</div><table>
+    ${fila("Anexo 27 actualizado con apto A",p.anexo27?"SÍ":"NO")}${fila("Credencial de obra social",p.credencial?"SÍ":"NO")}
+    ${fila("Kit de primeros auxilios",p.kitPrimAux?"SÍ":"NO")}${fila("Equipo de campaña completo",p.equipoCampania?"SÍ":"NO")}
+    ${fila("Observaciones",p.observaciones)}</table>
+  <div class="pie">Documento generado por el Board de Administración de Personal — ${new Date().toLocaleString("es-AR")}.
+  Uso interno. Contiene datos personales y sanitarios: su tratamiento se rige por la normativa de protección de datos y
+  por la clasificación de seguridad de la documentación de la que deriva.</div>
+  </body></html>`);
+  w.document.close();
+  setTimeout(()=>{ w.focus(); w.print(); }, 350);
+}
+
+/* ============================================================
+   12. DATOS DE EJEMPLO
+   ============================================================ */
+function cargarDemo(){
+  const AP=["ACOSTA","BENÍTEZ","CABRERA","DOMÍNGUEZ","ESPINOSA","FERREYRA","GODOY","HERRERA","IBARRA","JUÁREZ",
+    "LEDESMA","MALDONADO","NÚÑEZ","OJEDA","PERALTA","QUIROGA","ROMERO","SOSA","TEJADA","URIBE","VÁZQUEZ",
+    "WEISS","ZALAZAR","ARAUJO"];
+  const NM=["Martín","Lucía","Sergio","Valeria","Gonzalo","Camila","Ramiro","Sofía","Federico","Julieta",
+    "Emiliano","Rocío","Damián","Agustina","Nicolás","Belén","Hernán","Mariana","Ezequiel","Carla",
+    "Leandro","Daniela","Facundo","Paula"];
+  const GR=["Cnl","Tte Cnl","My","Cap","Cap","Tte 1ro","Tte","Sbtte","Sbof My","Sbof Pral","Sgto Ayte",
+    "Sgto 1ro","Sgto","Sgto","Cbo 1ro","Cbo 1ro","Cbo","Cbo","Vol 1ra","Vol 1ra","Vol 2da","Vol 2da","Vol 2da","Civ"];
+  const EL=["de3-b22","de3-b12","de3-pqdt","de3-amv","de3-bav","de3-rc19","de3-ad3","de3-com","de3-clde","de3-pe"];
+  const OR=["fdr-g1","fdr-g3","fdr-b4","fdr-b10","fdr-b1","fdr-foe","fdr-av","fdr-eme-san","fdr-eme-sca","fdr-cug"];
+  const AL=["","","Penicilina","","Polen / ácaros","","","Frutos secos","","","Picadura de himenópteros","",
+    "","AINEs","","","","Látex","","","","Mariscos","",""];
+  ESTADO.personal = AP.map((ap,i)=>{
+    const p = legajoVacio();
+    p.apellido=ap; p.nombre=NM[i]; p.dni=String(28000000+i*137911).slice(0,8);
+    p.mi=String(4500000+i*3137); p.grado=GR[i];
+    p.genero = [1,3,5,7,9,11,15,17,19,21,23].includes(i)? "Femenino":"Masculino";
+    p.nacimiento = (1975+(i%25))+"-0"+(1+i%9)+"-1"+(i%9);
+    p.especialidad = ESPECIALIDADES[i%ESPECIALIDADES.length];
+    p.cargo = ["Jefe de Elemento","Segundo Jefe","Of Personal","Of Operaciones","Jefe de Subunidad",
+      "Jefe de Sección","Jefe de Grupo","Auxiliar de Plana Mayor"][i%8];
+    p.rolCombate = ROLES_COMBATE[(i*3)%ROLES_COMBATE.length];
+    p.orgId = OR[i%OR.length]; p.elementoId = EL[i%EL.length];
+    p.nivel = NIVELES[i%NIVELES.length];
+    p.cursos = CURSOS.filter((_,k)=>(k+i)%5===0);
+    p.armamento = ARMAMENTO[1+(i%(ARMAMENTO.length-1))];
+    p.armaNro = "AR-"+String(10000+i*77);
+    if(i%4===0){ p.armaAux="Pistola Browning HP 9 mm"; p.armaAuxNro="PB-"+String(2000+i*13); }
+    p.apto = ["A","A","A","A","B","A","A","C","A","A"][i%10];
+    p.aptoVence = (i%7===0? "2026-08-30" : "2027-0"+(1+i%9)+"-15");
+    p.sangre = SANGRE[i%(SANGRE.length-1)];
+    p.alergias = AL[i]; if(i%6===0) p.medicacion="Antihipertensivo diario";
+    if(i%9===0) p.patologias="Antecedente de esguince de tobillo"; if(i%11===0) p.dieta="Sin gluten";
+    p.obraSocial="IOSE"; p.obraSocialNro="IOSE-"+String(700000+i*911);
+    if(i%5!==3){ p.emergNombre="Contacto "+NM[(i+7)%24]; p.emergTel="+54 9 11 4"+String(1000000+i*7717).slice(0,7); }
+    p.telefono="+54 9 11 5"+String(2000000+i*3313).slice(0,7);
+    p.lista = i>=21? "Suplente" : "Titular";
+    p.docPlanilla = i%3!==0; p.docCV = i%4!==0; p.docLegajo = i%5!==0;
+    if(i%3!==1) p.cuil = (p.genero==="Femenino"?"27-":"20-")+p.dni+"-"+(i%9);
+    if(i%4!==2){ p.cbu = String(2850590940090418135201+i).slice(0,22); p.banco = "Banco Nación"; }
+    p.anexo27 = p.apto==="A" && i%8!==0; p.credencial = i%7!==0;
+    p.kitPrimAux = i%5!==0; p.equipoCampania = i%6!==0;
+    p.observaciones = "";
+    return p;
+  });
+  guardar(); pintarTodo(); toast("24 legajos de ejemplo cargados.");
+}
+
+
+/* ============================================================
+   13. EVENTOS E INICIALIZACION
+   ============================================================ */
+function pintarTodo(){
+  iniciarFiltros();
+  pintarTablero(); pintarPersonal(); pintarArbol(); pintarDetalleOrg(); pintarPlanillas(); pintarAlmacen();
+}
+function irA(v){
+  $$(".vista").forEach(s=>s.classList.toggle("on", s.id==="v-"+v));
+  $$("#nav button").forEach(b=>b.setAttribute("aria-current", b.dataset.v===v? "page":"false"));
+  window.scrollTo({top:0,behavior:"instant"});
+}
+function confirmar(titulo, texto, alAceptar){
+  $("#aTitulo").textContent = titulo;
+  $("#aCuerpo").innerHTML = `<p style="margin:0">${esc(texto)}</p>`;
+  $("#mAviso").classList.add("on");
+  $("#aOk").onclick = ()=>{ $("#mAviso").classList.remove("on"); alAceptar(); };
+}
+function pedirTexto(titulo, etiqueta, valor, alAceptar){
+  $("#aTitulo").textContent = titulo;
+  $("#aCuerpo").innerHTML = `<div class="f"><label for="aInput">${esc(etiqueta)}</label>
+    <input type="text" id="aInput" value="${esc(valor||"")}"></div>`;
+  $("#mAviso").classList.add("on");
+  setTimeout(()=>$("#aInput").focus(),40);
+  $("#aOk").onclick = ()=>{ const v=$("#aInput").value.trim(); if(!v) return;
+    $("#mAviso").classList.remove("on"); alAceptar(v); };
+}
+function pintarAlmacen(){
+  let bytes = 0;
+  try{ bytes = (localStorage.getItem(CLAVE)||"").length*2; }catch(e){}
+  const fotos = ESTADO.personal.filter(p=>p.foto).length;
+  $("#estadoAlmacen").innerHTML = `<dl class="dl">
+    <dt>Legajos</dt><dd>${ESTADO.personal.length}</dd>
+    <dt>Con fotografía</dt><dd>${fotos}</dd>
+    <dt>Dependencias en el organigrama</dt><dd>${orgPlano().length}</dd>
+    <dt>Copia de trabajo en el navegador</dt><dd>${(bytes/1024).toFixed(1)} KB (el cupo varía según el equipo, habitualmente entre 5.000 y 10.000 KB)</dd>
+    ${(()=>{ try{ const d=JSON.parse(localStorage.getItem(CLAVE)||"{}");
+        return d.sinFotos? '<dt>Copia del navegador</dt><dd style="color:var(--warn)">Guardada sin fotografías por falta de cupo; las imágenes viven en el documento de datos</dd>':""; }catch(e){ return ""; } })()}
+    <dt>Documento de datos</dt><dd>${manejadorArchivo? esc(manejadorArchivo.name)+" — abierto, guardado automático" : "No abierto (los cambios sólo quedan en este navegador)"}</dd>
+  </dl>
+  <p class="ayuda" style="margin-top:12px">Recomendación: mantener abierto el documento de datos durante toda la
+  jornada y conservar una copia del JSON fuera del pen drive.
+  ${ESTADO.personal.length>150 && !manejadorArchivo
+    ? '<b style="color:var(--warn)">Con más de 150 legajos con fotografía el almacenamiento del navegador resulta insuficiente: se deberá trabajar con el documento de datos abierto (Chrome o Edge) o descargar el JSON periódicamente.</b>'
+    : ""}</p>`;
+}
+
+function iniciar(){
+  cargar();
+  document.documentElement.setAttribute("data-tema", ESTADO.tema);
+  $("#escudo").src = ESCUDO_B64;
+
+  /* Navegación */
+  $("#nav").addEventListener("click", e=>{ const b=e.target.closest("button[data-v]");
+    if(b){ irA(b.dataset.v); if(b.dataset.v==="datos") pintarAlmacen(); } });
+  $("#btnTema").onclick = ()=>{ ESTADO.tema = ESTADO.tema==="claro"?"oscuro":"claro";
+    document.documentElement.setAttribute("data-tema", ESTADO.tema); guardar(); pintarTablero(); };
+
+  /* Alta / edición */
+  $("#btnNuevo").onclick = ()=>abrirLegajo(null);
+  $$("[data-cerrar]").forEach(b=>b.onclick = ()=>b.closest(".modal").classList.remove("on"));
+  $$(".modal").forEach(m=>m.addEventListener("click", e=>{ if(e.target===m) m.classList.remove("on"); }));
+  document.addEventListener("keydown", e=>{ if(e.key==="Escape") $$(".modal.on").forEach(m=>m.classList.remove("on")); });
+
+  $("#btnGuardar").onclick = ()=>{
+    const p = leerLegajo();
+    if(!p.apellido.trim() || !p.nombre.trim()){ toast("Apellido y nombre son obligatorios."); return; }
+    if(p.armamento && p.armamento!=="Sin asignar" && !p.armaNro.trim()) toast("Atención: arma sin número de serie.");
+    if(ESTADO.editandoId){ const i = ESTADO.personal.findIndex(x=>x.id===ESTADO.editandoId); ESTADO.personal[i]=p; }
+    else ESTADO.personal.push(p);
+    ESTADO.editandoId = null;
+    $("#mLegajo").classList.remove("on");
+    guardar(); pintarTodo(); toast("Legajo guardado.");
+  };
+  $("#btnEliminar").onclick = ()=>{
+    const id = ESTADO.editandoId; if(!id) return;
+    const p = ESTADO.personal.find(x=>x.id===id);
+    confirmar("Eliminar legajo", "Se eliminará definitivamente el legajo de "+nombreCompleto(p)+". Esta acción no se puede deshacer.", ()=>{
+      ESTADO.personal = ESTADO.personal.filter(x=>x.id!==id);
+      ESTADO.editandoId = null; $("#mLegajo").classList.remove("on");
+      guardar(); pintarTodo(); toast("Legajo eliminado.");
+    });
+  };
+  $("#btnImprimirFicha").onclick = ()=>imprimirFicha(leerLegajo());
+
+  /* Filtros */
+  ["fBuscar","fGrado","fGenero","fApto","fElemento","fEspecialidad","fDoc","fLista","fListado","fOrden"]
+    .forEach(id=>$("#"+id).addEventListener("input", pintarPersonal));
+  $("#btnLimpiar").onclick = ()=>{ ["fBuscar","fGrado","fGenero","fApto","fElemento","fEspecialidad","fDoc","fLista","fListado"]
+    .forEach(id=>$("#"+id).value=""); ESTADO.filtroOrg=null; pintarPersonal(); };
+  $("#btnVista").onclick = ()=>{ ESTADO.vistaTabla = !ESTADO.vistaTabla; pintarPersonal(); };
+  $("#btnImprimirFichas").onclick = ()=>window.print();
+  $("#btnCsvFiltro").onclick = ()=>exportarCsv(filtrados());
+  $("#fichas").addEventListener("click", e=>{ const f=e.target.closest(".ficha"); if(f) abrirLegajo(f.dataset.id); });
+  $("#fichas").addEventListener("keydown", e=>{ const f=e.target.closest(".ficha");
+    if(f && (e.key==="Enter"||e.key===" ")){ e.preventDefault(); abrirLegajo(f.dataset.id);} });
+  $("#tablaPersonal").addEventListener("click", e=>{ const t=e.target.closest("tr[data-id]"); if(t) abrirLegajo(t.dataset.id); });
+
+  /* Organigrama */
+  $("#arbol").addEventListener("click", e=>{
+    const tog = e.target.closest("[data-tog]");
+    if(tog){ const id=tog.dataset.tog; colapsados.has(id)? colapsados.delete(id):colapsados.add(id); pintarArbol(); return; }
+    const n = e.target.closest(".nodo");
+    if(n){ ESTADO.nodoSel = n.dataset.id; pintarArbol(); pintarDetalleOrg(); }
+  });
+  $("#btnExpandir").onclick = ()=>{
+    if(colapsados.size){ colapsados.clear(); $("#btnExpandir").textContent="Contraer todo"; }
+    else { orgPlano().forEach(o=>colapsados.add(o.id)); $("#btnExpandir").textContent="Expandir todo"; }
+    pintarArbol();
+  };
+  $("#orgDetalle").addEventListener("click", e=>{
+    const ver = e.target.closest("[data-ver]");    if(ver) return abrirLegajo(ver.dataset.ver);
+    const qu  = e.target.closest("[data-quitar]");
+    if(qu){ const p = ESTADO.personal.find(x=>x.id===qu.dataset.quitar); p.orgId=""; guardar(); pintarTodo(); return; }
+    if(e.target.id==="btnAsignar" || e.target.id==="btnAsignarElem"){
+      const pid = $("#orgAsignar").value; if(!pid){ toast("Seleccione un efectivo."); return; }
+      const p = ESTADO.personal.find(x=>x.id===pid);
+      if(e.target.id==="btnAsignar") p.orgId = ESTADO.nodoSel; else p.elementoId = ESTADO.nodoSel;
+      guardar(); pintarTodo(); toast("Asignación registrada.");
+    }
+    if(e.target.id==="btnFiltrarAqui"){
+      ESTADO.filtroOrg = ESTADO.nodoSel; $("#fElemento").value = ESTADO.nodoSel;
+      ESTADO.filtroOrg = null; irA("personal"); pintarPersonal();
+    }
+  });
+  $("#btnNodoAdd").onclick = ()=>{
+    const destino = ESTADO.nodoSel;
+    if(!destino){ toast("Seleccione la dependencia superior."); return; }
+    pedirTexto("Nueva dependencia","Denominación del elemento","", txt=>{
+      const r = orgBuscar(destino); if(!r) return;
+      r.nodo.h = r.nodo.h || [];
+      r.nodo.h.push({id:"n"+Date.now().toString(36), n:txt});
+      colapsados.delete(destino); guardar(); pintarTodo(); toast("Dependencia agregada.");
+    });
+  };
+  $("#btnNodoRen").onclick = ()=>{
+    if(!ESTADO.nodoSel){ toast("Seleccione una dependencia."); return; }
+    const r = orgBuscar(ESTADO.nodoSel);
+    pedirTexto("Renombrar dependencia","Nueva denominación", r.nodo.n, txt=>{
+      r.nodo.n = txt; guardar(); pintarTodo(); toast("Dependencia renombrada.");
+    });
+  };
+  $("#btnNodoDel").onclick = ()=>{
+    if(!ESTADO.nodoSel){ toast("Seleccione una dependencia."); return; }
+    const r = orgBuscar(ESTADO.nodoSel);
+    const afectados = contarNodo(ESTADO.nodoSel);
+    confirmar("Eliminar dependencia",
+      "Se eliminará “"+r.nodo.n+"” y sus subordinados."+(afectados? " "+afectados+" efectivo(s) quedarán sin puesto asignado.":""), ()=>{
+      const ids = new Set(orgDescendientes(ESTADO.nodoSel));
+      ESTADO.personal.forEach(p=>{ if(ids.has(p.orgId)) p.orgId=""; if(ids.has(p.elementoId)) p.elementoId=""; });
+      const i = r.lista.indexOf(r.nodo); r.lista.splice(i,1);
+      ESTADO.nodoSel = null; guardar(); pintarTodo(); toast("Dependencia eliminada.");
+    });
+  };
+  $("#btnOrgReset").onclick = ()=>confirmar("Restaurar estructura",
+    "El organigrama volverá a la estructura de la Orden Especial Nro 02/26. Las asignaciones a dependencias creadas manualmente se perderán.", ()=>{
+      ESTADO.org = clonar(ORG_SEMILLA);
+      const validos = new Set(orgPlano().map(o=>o.id));
+      ESTADO.personal.forEach(p=>{ if(!validos.has(p.orgId)) p.orgId=""; if(!validos.has(p.elementoId)) p.elementoId=""; });
+      ESTADO.nodoSel=null; guardar(); pintarTodo(); toast("Estructura restaurada.");
+    });
+
+  /* Planillas */
+  $("#btnImprimirPlanilla").onclick = ()=>window.print();
+  $("#btnCsvPlanilla").onclick = ()=>exportarCsv(ESTADO.personal);
+  $("#btnSoloFaltantes").onclick = ()=>{ soloFaltantes = !soloFaltantes; pintarPlanillas(); };
+  ["planillaDocumentacion","planillaArmamento","planillaSanidad","planillaRol"].forEach(id=>
+    $("#"+id).addEventListener("click", e=>{ const t=e.target.closest("tr[data-id]"); if(t) abrirLegajo(t.dataset.id); }));
+
+  /* Datos */
+  $("#btnExpJson").onclick = exportarJson;
+  $("#btnExpCsv").onclick  = ()=>exportarCsv(ESTADO.personal);
+  let modoImp = "reemplazar";
+  $("#btnImpJson").onclick      = ()=>{ modoImp="reemplazar"; $("#archivoImp").click(); };
+  $("#btnImpJsonMerge").onclick = ()=>{ modoImp="fusionar";   $("#archivoImp").click(); };
+  $("#btnImpCsv").onclick       = ()=>{ modoImp="csv";        $("#archivoImp").click(); };
+  $("#archivoImp").onchange = e=>{
+    const f = e.target.files[0]; if(!f) return;
+    const fr = new FileReader();
+    fr.onload = ev=>{
+      const txt = ev.target.result;
+      try{
+        if(modoImp==="csv" || /\.csv$/i.test(f.name)) return importarCsv(txt);
+        const d = JSON.parse(txt);
+        if(!Array.isArray(d.personal)) throw new Error("formato");
+        if(modoImp==="reemplazar"){
+          ESTADO.personal = d.personal; if(d.org) ESTADO.org = d.org;
+        }else{
+          d.personal.forEach(np=>{
+            const ex = np.dni? ESTADO.personal.find(x=>x.dni===np.dni && x.lista===np.lista) : null;
+            if(ex) Object.assign(ex, np, {id:ex.id}); else ESTADO.personal.push({...np, id:np.id||uid()});
+          });
+        }
+        guardar(); pintarTodo(); toast("Importación completada: "+d.personal.length+" legajo(s).");
+      }catch(err){ toast("Archivo no válido."); console.warn(err); }
+    };
+    fr.readAsText(f, "utf-8");
+    e.target.value = "";
+  };
+  $("#btnDemo").onclick = ()=>confirmar("Cargar datos de ejemplo",
+    "Se reemplazarán todos los legajos actuales por 24 legajos ficticios de demostración.", cargarDemo);
+  $("#btnBorrar").onclick = ()=>confirmar("Borrar todo",
+    "Se eliminarán todos los legajos y se restaurará el organigrama. Exporte antes una copia de seguridad.", ()=>{
+      ESTADO.personal=[]; ESTADO.org=clonar(ORG_SEMILLA); ESTADO.nodoSel=null;
+      guardar(); pintarTodo(); toast("Datos borrados.");
+    });
+
+  /* Archivo de datos del pen drive (File System Access API) */
+  const soportaFS = ("showSaveFilePicker" in window) && ("showOpenFilePicker" in window);
+  $("#estadoArchivo").textContent = soportaFS
+    ? "Este navegador puede abrir y guardar directamente el archivo de datos del pen drive."
+    : "Este navegador no admite la apertura directa de archivos. Se trabajará con Importar JSON y Descargar JSON, que cumplen la misma función y también funcionan sin conexión.";
+  $("#btnAbrir").disabled = !soportaFS;
+  $("#btnVincular").disabled = !soportaFS;
+  $("#btnGuardarArch").disabled = !soportaFS;
+
+  function aplicarPaquete(d, nombre){
+    if(!d || !Array.isArray(d.personal)) throw new Error("formato");
+    ESTADO.personal = d.personal;
+    if(d.org) ESTADO.org = d.org;
+    ESTADO.nodoSel = null;
+    guardar(); pintarTodo();
+    toast(d.personal.length+" legajo(s) cargados desde "+nombre+".");
+  }
+
+  if(soportaFS){
+    $("#btnAbrir").onclick = async ()=>{
+      try{
+        const [h] = await window.showOpenFilePicker({
+          types:[{description:"Datos del board", accept:{"application/json":[".json"]}}], multiple:false});
+        const txt = await (await h.getFile()).text();
+        aplicarPaquete(JSON.parse(txt), h.name);
+        manejadorArchivo = h;               /* desde aquí, guardado automático sobre el mismo archivo */
+        pintarAlmacen();
+        $("#estadoArchivo").textContent = "Trabajando sobre "+h.name+". Los cambios se guardan automáticamente.";
+      }catch(err){
+        if(err.name==="AbortError") return;
+        console.warn(err); toast("No se pudo abrir el archivo de datos.");
+      }
+    };
+    $("#btnVincular").onclick = async ()=>{
+      try{
+        manejadorArchivo = await window.showSaveFilePicker({suggestedName:"datos-personal.json",
+          types:[{description:"Datos del board", accept:{"application/json":[".json"]}}]});
+        await escribirArchivo({v:1,generado:new Date().toISOString(),personal:ESTADO.personal,org:ESTADO.org,tema:ESTADO.tema});
+        pintarAlmacen(); toast("Archivo creado. El guardado será automático.");
+      }catch(err){ if(err.name!=="AbortError") console.warn(err); }
+    };
+    $("#btnGuardarArch").onclick = ()=>{
+      if(!manejadorArchivo){ toast("Primero se debe abrir o crear el archivo de datos."); return; }
+      escribirArchivo({v:1,generado:new Date().toISOString(),personal:ESTADO.personal,org:ESTADO.org,tema:ESTADO.tema});
+      toast("Archivo guardado.");
+    };
+  }
+
+  ESTADO.nodoSel = "fdr";
+  pintarTodo();
+}
+
+document.addEventListener("DOMContentLoaded", iniciar);
+</script>
+</body>
+</html>
