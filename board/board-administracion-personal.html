@@ -183,6 +183,16 @@ tfoot td{font-weight:700;background:var(--panel2)}
 .f{display:flex;flex-direction:column;gap:4px;min-width:0}
 .f>label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
 .f input,.f select,.f textarea{width:100%}
+.qr-edit{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.qrbox{position:relative;width:128px;height:128px;border-radius:10px;border:1px dashed var(--line);
+  background:var(--panel2);color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:center;
+  text-align:center;overflow:hidden;flex:0 0 auto}
+.qrbox img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;display:none}
+.qrbox.con img{display:block}
+.qrbox.con span{display:none}
+.qr-estado{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;
+  border-radius:99px;padding:3px 10px;background:var(--accent-soft);color:var(--accent)}
+.qr-estado.vacio{background:var(--panel2);color:var(--muted)}
 .foto-edit{display:flex;gap:14px;align-items:flex-start}
 .prevbox{position:relative;width:104px;height:128px;border-radius:10px;border:1px dashed var(--line);
   background:var(--panel2);color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:center;
@@ -741,6 +751,7 @@ function legajoVacio(){
     orgId:"", elementoId:"", nivel:"Básico", cursos:[],
     licVence:"", licCat:"", vehiculo:"", fueraListado:false,
     armamento:"Sin asignar", armaNro:"", armaAux:"", armaAuxNro:"", equipoOptico:"",
+    qr:"", qrTexto:"", qrFecha:"",
     apto:"S", aptoVence:"", sangre:"Sin registrar", alergias:"", medicacion:"", patologias:"",
     vacunas:"", dieta:"", saludObs:"",
     anexo27:false, credencial:false, kitPrimAux:false, equipoCampania:false,
@@ -855,6 +866,8 @@ function pintarTablero(){
   const conAlerg  = P.filter(p=>(p.alergias||"").trim()).length;
   const armados   = P.filter(p=>p.armamento && p.armamento!=="Sin asignar").length;
   const listos    = P.filter(alistamientoOk).length;
+  const conQr     = P.filter(p=>(p.qr||"").trim()).length;
+  const qrLeidos  = P.filter(p=>(p.qrTexto||"").trim()).length;
   const vigentes  = P.filter(p=>!p.fueraListado);
   const titulares = vigentes.filter(p=>p.lista==="Titular").length;
   const fuera     = P.length - vigentes.length;
@@ -869,7 +882,9 @@ function pintarTablero(){
     {n:sinApto, t:"Sin apto / vencido", d:"Responsabilidad de comando", c:sinApto?"warn":""},
     {n:conAlerg, t:"Con alergias", d:"Novedad sanitaria declarada", c:"info"},
     {n:armados, t:"Armamento asignado", d:"Con Nro de serie registrado", c:""},
-    {n:listos, t:"Alistamiento completo", d:"Anexo 27 + credencial + kit + equipo", c:listos===P.length&&P.length?"ok":"warn"}
+    {n:listos, t:"Alistamiento completo", d:"Anexo 27 + credencial + kit + equipo", c:listos===P.length&&P.length?"ok":"warn"},
+    {n:conQr, t:"QR de migraciones", d:P.length? (qrLeidos+(qrLeidos===1?" descifrado":" descifrados")+" · restan "+(P.length-conQr)):"—",
+     c:!P.length?"":(conQr===P.length?"ok":(conQr?"warn":"bad"))}
   ].map(k=>`<div class="kpi ${k.c}"><div class="n">${k.n}</div><div class="t">${esc(k.t)}</div><div class="d">${esc(k.d)}</div></div>`).join("");
 
   /* Género */
@@ -1170,6 +1185,31 @@ function abrirLegajo(id){
     </div>
   </fieldset>
 
+  <fieldset class="fset"><legend>Documentación migratoria — código QR</legend>
+    <div class="qr-edit">
+      <div class="qrbox${p.qr?" con":""}" id="qrBox"><img id="qrPrev" alt="Código QR del legajo"${p.qr?' src="'+p.qr+'"':""}><span>Sin QR<br>capturado</span></div>
+      <div style="flex:1;min-width:240px">
+        <div class="row">
+          <button class="btn sm pri" id="btnQrCam">Tomar foto del QR</button>
+          <button class="btn sm" id="btnQrArch">Elegir archivo</button>
+          <button class="btn sm" id="btnQrDel">Quitar</button>
+        </div>
+        <div style="margin:10px 0 6px">
+          <span class="qr-estado${p.qr?"":" vacio"}" id="qrEstado">${p.qr? (p.qrTexto? "QR leído y descifrado" : "QR capturado — sin descifrar") : "Sin QR"}</span>
+          ${p.qrFecha? '<span class="ayuda" style="margin-left:8px">Capturado el '+esc(p.qrFecha)+'</span>' : ""}
+        </div>
+        <div class="f full"><label for="e_qrTexto">Contenido del QR</label>
+          <input type="text" id="e_qrTexto" class="mono" value="${esc(p.qrTexto||"")}" placeholder="Se completa solo al leer el código; admite corrección manual"></div>
+        <p class="ayuda" style="margin:8px 0 0">En el teléfono o la tableta el botón abre la cámara trasera directamente.
+        La imagen se reduce a 520 px y se guarda dentro del archivo de datos, junto a la ficha.
+        Cuando el navegador puede descifrar el código, su contenido queda además como texto, listo para copiar
+        en la declaración de migraciones.</p>
+        <input type="file" id="qrCamIn" accept="image/*" capture="environment" style="display:none">
+        <input type="file" id="qrArchIn" accept="image/*" style="display:none">
+      </div>
+    </div>
+  </fieldset>
+
   <fieldset class="fset"><legend>Situación de documentación — ${d.ok} de ${d.total} requisitos</legend>
     <div class="chks">
       <label class="chk"><input type="checkbox" id="e_docPlanilla" ${p.docPlanilla?"checked":""}>Planilla de datos personales</label>
@@ -1271,6 +1311,49 @@ function abrirLegajo(id){
     };
     fr.readAsDataURL(f);
   };
+  /* ---- Código QR de migraciones ---- */
+  const ponerQr = (src, texto, fecha)=>{
+    $("#qrPrev").setAttribute("src", src||"");
+    $("#qrBox").classList.toggle("con", !!src);
+    const est=$("#qrEstado");
+    est.textContent = src ? (texto? "QR leído y descifrado" : "QR capturado — sin descifrar") : "Sin QR";
+    est.classList.toggle("vacio", !src);
+    if(texto!==undefined && texto!==null) $("#e_qrTexto").value = texto;
+    $("#qrPrev").dataset.fecha = fecha||"";
+  };
+  const tomarQr = e=>{
+    const f = e.target.files[0]; if(!f) return;
+    const fr = new FileReader();
+    fr.onload = ev=>{
+      const im = new Image();
+      im.onload = async ()=>{
+        const max=520, k=Math.min(1,max/Math.max(im.width,im.height));
+        const cv=document.createElement("canvas");
+        cv.width=Math.round(im.width*k); cv.height=Math.round(im.height*k);
+        cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);
+        const src = cv.toDataURL("image/jpeg",0.72);
+        let texto = "";
+        try{
+          if("BarcodeDetector" in window){
+            const det = new BarcodeDetector({formats:["qr_code"]});
+            const r = await det.detect(cv);
+            if(r && r.length) texto = r[0].rawValue || "";
+          }
+        }catch(err){ console.warn("No se pudo descifrar el QR:", err); }
+        ponerQr(src, texto, new Date().toLocaleDateString("es-AR"));
+        toast(texto? "QR capturado y descifrado." : "QR capturado. El navegador no pudo descifrarlo: se conserva la imagen.");
+      };
+      im.src = ev.target.result;
+    };
+    fr.readAsDataURL(f);
+    e.target.value = "";
+  };
+  $("#btnQrCam").onclick  = ()=>$("#qrCamIn").click();
+  $("#btnQrArch").onclick = ()=>$("#qrArchIn").click();
+  $("#btnQrDel").onclick  = ()=>ponerQr("", "", "");
+  $("#qrCamIn").onchange  = tomarQr;
+  $("#qrArchIn").onchange = tomarQr;
+
   $("#mLegajo").classList.add("on");
   setTimeout(()=>$("#e_apellido").focus(),40);
 }
@@ -1285,12 +1368,14 @@ function leerLegajo(){
    "telefono","email","emergNombre","emergTel","obraSocial","obraSocialNro","cbu","banco",
    "lista","grado","especialidad","especialidadDetalle","cargo","rolCombate","destino",
    "orgId","elementoId","nivel","licVence","licCat","vehiculo","armamento","armaNro","armaAux","armaAuxNro","equipoOptico",
-   "apto","aptoVence","sangre","alergias","medicacion","patologias","vacunas","dieta","saludObs","observaciones"
+   "apto","aptoVence","sangre","alergias","medicacion","patologias","vacunas","dieta","saludObs","observaciones","qrTexto"
   ].forEach(k=>base[k]=v(k));
   ["docPlanilla","docCV","docLegajo","anexo27","credencial","kitPrimAux","equipoCampania"].forEach(k=>base[k]=b(k));
   base.fueraListado = $("#e_fueraListado") ? $("#e_fueraListado").checked : !!base.fueraListado;
   base.cursos = $$(".e_curso").filter(c=>c.checked).map(c=>c.value);
   base.foto = $("#fotoPrev").getAttribute("src") || "";
+  base.qr = $("#qrPrev") ? ($("#qrPrev").getAttribute("src") || "") : (base.qr||"");
+  base.qrFecha = $("#qrPrev") ? ($("#qrPrev").dataset.fecha || base.qrFecha || "") : (base.qrFecha||"");
   if(base.nombreListado && base.apellido && base.nombre) base.verificarNombre = false;
   base.actualizado = new Date().toISOString();
   return base;
@@ -1496,7 +1581,7 @@ const COLS_CSV = ["lista","grado","apellido","nombre","nombreListado","dni","cui
   "cbu","banco","docPlanilla","docCV","docLegajo","documentacion",
   "especialidad","especialidadDetalle","cargo","rolCombate","destino",
   "puestoOrganigrama","elementoCombinado","nivel","cursos","licVence","licCat","vehiculo","fueraListado",
-  "armamento","armaNro","armaAux","armaAuxNro","equipoOptico","apto","aptoVence","sangre",
+  "armamento","armaNro","armaAux","armaAuxNro","equipoOptico","qrTexto","qrFecha","apto","aptoVence","sangre",
   "alergias","medicacion","patologias","vacunas","dieta","saludObs",
   "anexo27","credencial","kitPrimAux","equipoCampania","observaciones"];
 
@@ -1623,6 +1708,11 @@ function imprimirFicha(p){
     ${fila("Grupo y factor sanguíneo",p.sangre)}${fila("Alergias",p.alergias)}${fila("Medicación habitual",p.medicacion)}
     ${fila("Patologías / antecedentes",p.patologias)}${fila("Vacunas",p.vacunas)}${fila("Dieta especial",p.dieta)}
     ${fila("Observaciones sanitarias",p.saludObs)}</table>
+  ${p.qr? `<div class="tt">DOCUMENTACIÓN MIGRATORIA</div>
+  <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:10px">
+    <img src="${p.qr}" alt="Código QR" style="width:132px;height:132px;object-fit:contain;border:1px solid #ccc;background:#fff">
+    <table style="flex:1">${fila("Contenido del código",p.qrTexto||"(no descifrado)")}${fila("Fecha de captura",p.qrFecha)}</table>
+  </div>` : ""}
   <div class="tt">ALISTAMIENTO</div><table>
     ${fila("Anexo 27 actualizado con apto A",p.anexo27?"SÍ":"NO")}${fila("Credencial de obra social",p.credencial?"SÍ":"NO")}
     ${fila("Kit de primeros auxilios",p.kitPrimAux?"SÍ":"NO")}${fila("Equipo de campaña completo",p.equipoCampania?"SÍ":"NO")}
