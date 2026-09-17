@@ -120,6 +120,20 @@ textarea{resize:vertical;min-height:62px;font-family:var(--f)}
        overflow:hidden;cursor:pointer;transition:transform .12s ease,box-shadow .12s ease}
 .ficha:hover{transform:translateY(-2px);box-shadow:0 3px 6px rgba(20,32,26,.09),0 10px 24px rgba(20,32,26,.11)}
 .ficha .cab{display:flex;gap:11px;padding:12px}
+.ficha .qrmini{width:58px;height:58px;border-radius:6px;border:1px solid var(--line);background:#fff;
+  object-fit:contain;flex:0 0 auto;cursor:zoom-in}
+.ficha .qrmini.vacia{background:var(--panel2);border-style:dashed;display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:var(--muted);text-align:center;line-height:1.15;cursor:default}
+.qrzoom{position:fixed;inset:0;z-index:120;background:rgba(10,16,13,.72);display:none;align-items:center;
+  justify-content:center;padding:20px}
+.qrzoom.on{display:flex}
+.qrzoom .caja{background:#fff;border-radius:14px;padding:18px;max-width:min(92vw,420px);text-align:center;
+  box-shadow:0 18px 50px rgba(0,0,0,.4)}
+.qrzoom .caja img{width:100%;max-width:340px;height:auto;display:block;margin:0 auto}
+.qrzoom .caja .quien{margin-top:12px;font-size:14px;font-weight:650;color:#16211c}
+.qrzoom .caja .dato{font-size:12px;color:#5d6a62;margin-top:2px}
+.qrzoom .caja .cont{font-size:11px;color:#5d6a62;margin-top:8px;word-break:break-all;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .foto{width:60px;height:74px;border-radius:8px;object-fit:cover;background:var(--panel2);border:1px solid var(--line);flex:0 0 auto}
 .foto.ph{display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--muted)}
 .ficha .nom{font-weight:660;font-size:13.5px;line-height:1.25}
@@ -437,6 +451,9 @@ tfoot td{font-weight:700;background:var(--panel2)}
 </div><!-- /wrap -->
 
 <!-- =================== MODAL LEGAJO =================== -->
+<div class="qrzoom" id="qrZoom" role="dialog" aria-label="Código QR ampliado"><div class="caja">
+  <img id="qrZoomImg" alt="Código QR"><div class="quien" id="qrZoomQuien"></div>
+  <div class="dato" id="qrZoomDato"></div><div class="cont" id="qrZoomCont"></div></div></div>
 <div class="modal" id="mLegajo"><div class="caja">
   <div class="mhd"><h3 id="mTitulo">Legajo</h3>
     <button class="btn sm" id="btnImprimirFicha">Imprimir ficha</button>
@@ -774,6 +791,15 @@ const claseDoc = e => e==="Completa"? "ok" : (e==="Sin iniciar"? "bad" : "warn")
 
 const gradoInfo = c => GRADOS.find(g=>g.c===c) || {c:c||"—", n:c||"Sin grado", cat:"Sin categoría", j:99};
 const aptoInfo  = c => APTOS.find(a=>a.c===c) || APTOS[4];
+const vehiculoPartes = p => {
+  const v = (p.vehiculo||"").trim();
+  if(!v) return null;
+  let m = v.match(/^(.*?)\s*\(([^)]+)\)\s*$/);            /* ... (AG969RI) */
+  if(m) return {tipo:m[1].trim(), pat:m[2].trim()};
+  m = v.match(/^(.*?)\s*NI\s*:\s*([A-Za-z0-9\-]+)\s*$/);  /* ... NI:400007 */
+  if(m) return {tipo:m[1].trim(), pat:m[2].trim()};
+  return {tipo:v, pat:""};
+};
 const nombreCompleto = p => (p.apellido||"").toUpperCase() + (p.nombre? ", "+p.nombre : "");
 const iniciales = p => ((p.apellido||"?")[0]||"?").toUpperCase() + ((p.nombre||"")[0]||"").toUpperCase();
 
@@ -1090,19 +1116,34 @@ function pintarPersonal(){
     return;
   }
 
+  const abrirQrZoom = p=>{
+    $("#qrZoomImg").src = p.qr;
+    $("#qrZoomQuien").textContent = nombreCompleto(p);
+    $("#qrZoomDato").textContent = [gradoInfo(p.grado).c, p.dni?("DNI "+p.dni):""].filter(Boolean).join(" · ");
+    $("#qrZoomCont").textContent = p.qrTexto || "";
+    $("#qrZoom").classList.add("on");
+  };
+  $("#qrZoom").onclick = ()=>$("#qrZoom").classList.remove("on");
+
   $("#fichas").innerHTML = L.map(p=>{
     const g = gradoInfo(p.grado), a = aptoInfo(aptoEfectivo(p)), d = docsEstado(p);
     const foto = p.foto? `<img class="foto" src="${p.foto}" alt="Fotografía de ${esc(nombreCompleto(p))}">`
                        : `<div class="foto ph">${esc(iniciales(p))}</div>`;
+    const veh = vehiculoPartes(p);
+    const qr = p.qr
+      ? `<img class="qrmini" src="${p.qr}" alt="Código QR de ${esc(nombreCompleto(p))}" data-qr="${p.id}" title="Ampliar el código QR">`
+      : `<div class="qrmini vacia" aria-label="Sin código QR">Sin<br>QR</div>`;
     return `<article class="ficha${p.fueraListado?" fuera":""}" data-id="${p.id}" tabindex="0">
       <div class="cab">${foto}<div style="min-width:0;flex:1">
         <div class="nom">${esc(nombreCompleto(p))}</div>
         <div class="gr">${esc(g.c)} · ${esc(p.especialidadDetalle||p.especialidad||"—")}</div>
-        <div class="meta">${esc(p.cargo||p.destino||"Sin cargo")}<br>
+        <div class="meta"><b>DNI:</b> <span class="mono">${esc(p.dni||"—")}</span><br>
+          ${esc(p.cargo||p.destino||"Sin cargo")}<br>
           <b>Rol:</b> ${esc(p.rolCombate||"—")}<br>
           <b>Elem:</b> ${esc(orgNombre(p.orgId)||orgNombre(p.elementoId)||"Sin asignar")}<br>
-          <b>Arma:</b> ${esc(p.armamento==="Sin asignar"?"—":p.armamento)} ${p.armaNro?'<span class="mono">Nro '+esc(p.armaNro)+'</span>':""}
-        </div></div></div>
+          <b>Arma:</b> ${esc(p.armamento==="Sin asignar"?"—":p.armamento)} ${p.armaNro?'<span class="mono">Nro '+esc(p.armaNro)+'</span>':""}<br>
+          <b>Veh:</b> ${veh? esc(veh.tipo)+(veh.pat?' <span class="mono">'+esc(veh.pat)+'</span>':"") : "—"}
+        </div></div>${qr}</div>
       <div class="pie">
         <span class="chip ${claseDoc(d.estado)}">Doc ${d.ok}/${d.total}</span>
         <span class="chip ${a.clase}">Apto ${esc(aptoEfectivo(p))}</span>
@@ -1113,6 +1154,14 @@ function pintarPersonal(){
         ${alistamientoOk(p)?`<span class="chip ok">Alistado</span>`:`<span class="chip warn">Alistamiento incompleto</span>`}
       </div></article>`;
   }).join("");
+
+  $$("#fichas .qrmini[data-qr]").forEach(el=>{
+    el.onclick = ev=>{
+      ev.stopPropagation();
+      const p = ESTADO.personal.find(x=>x.id===el.dataset.qr);
+      if(p && p.qr) abrirQrZoom(p);
+    };
+  });
 
   $("#tablaPersonal").innerHTML = `<table><thead><tr>
     <th>Lista</th><th>Grado</th><th>Apellido y nombre</th><th>DNI</th><th>CUIL</th><th>Género</th>
