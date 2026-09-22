@@ -1,0 +1,4 @@
+# El repositorio es público: ningún archivo con datos personales se versiona aquí.
+board/board-consulta-*.html
+datos-personal*.json
+*.json
