@@ -145,6 +145,10 @@ textarea{resize:vertical;min-height:62px;font-family:var(--f)}
 .ficha.fuera{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 5%,var(--panel))}
 .ficha.fuera .nom,.ficha.fuera .gr,.ficha.fuera .meta,.ficha.fuera .meta b{color:var(--bad)}
 tr.fuera td,tr.fuera td b{color:var(--bad)}
+.ficha.rolno{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 7%,var(--panel))}
+.ficha.rolno .nom{color:var(--warn)}
+tr.rolno td,tr.rolno td b{color:var(--warn)}
+.modal .caja.rolno{border-color:var(--warn);border-width:2px}
 .modal .caja.fuera{border-color:var(--bad);border-width:2px}
 
 /* ---------- Tablas ---------- */
@@ -767,6 +771,7 @@ function legajoVacio(){
     cargo:"", rolCombate:"Tirador", destino:"",
     orgId:"", elementoId:"", nivel:"Básico", cursos:[],
     licVence:"", licCat:"", vehiculo:"", fueraListado:false,
+    noEnRol:false,
     armamento:"Sin asignar", armaNro:"", armaAux:"", armaAuxNro:"", equipoOptico:"",
     qr:"", qrTexto:"", qrFecha:"",
     apto:"S", aptoVence:"", sangre:"Sin registrar", alergias:"", medicacion:"", patologias:"",
@@ -892,6 +897,7 @@ function pintarTablero(){
   const conAlerg  = P.filter(p=>(p.alergias||"").trim()).length;
   const armados   = P.filter(p=>p.armamento && p.armamento!=="Sin asignar").length;
   const listos    = P.filter(alistamientoOk).length;
+  const noRol     = P.filter(p=>p.noEnRol).length;
   const conQr     = P.filter(p=>(p.qr||"").trim()).length;
   const qrLeidos  = P.filter(p=>(p.qrTexto||"").trim()).length;
   const vigentes  = P.filter(p=>!p.fueraListado);
@@ -909,6 +915,7 @@ function pintarTablero(){
     {n:conAlerg, t:"Con alergias", d:"Novedad sanitaria declarada", c:"info"},
     {n:armados, t:"Armamento asignado", d:"Con Nro de serie registrado", c:""},
     {n:listos, t:"Alistamiento completo", d:"Anexo 27 + credencial + kit + equipo", c:listos===P.length&&P.length?"ok":"warn"},
+    {n:noRol, t:"No figuran en el Rol 22SEP26", d:noRol? "Marcados en amarillo · a verificar":"Todos verificados", c:noRol?"warn":"ok"},
     {n:conQr, t:"QR de migraciones", d:P.length? (qrLeidos+(qrLeidos===1?" descifrado":" descifrados")+" · restan "+(P.length-conQr)):"—",
      c:!P.length?"":(conQr===P.length?"ok":(conQr?"warn":"bad"))}
   ].map(k=>`<div class="kpi ${k.c}"><div class="n">${k.n}</div><div class="t">${esc(k.t)}</div><div class="d">${esc(k.d)}</div></div>`).join("");
@@ -1133,7 +1140,7 @@ function pintarPersonal(){
     const qr = p.qr
       ? `<img class="qrmini" src="${p.qr}" alt="Código QR de ${esc(nombreCompleto(p))}" data-qr="${p.id}" title="Ampliar el código QR">`
       : `<div class="qrmini vacia" aria-label="Sin código QR">Sin<br>QR</div>`;
-    return `<article class="ficha${p.fueraListado?" fuera":""}" data-id="${p.id}" tabindex="0">
+    return `<article class="ficha${p.fueraListado?" fuera":""}${p.noEnRol?" rolno":""}" data-id="${p.id}" tabindex="0">
       <div class="cab">${foto}<div style="min-width:0;flex:1">
         <div class="nom">${esc(nombreCompleto(p))}</div>
         <div class="gr">${esc(g.c)} · ${esc(p.especialidadDetalle||p.especialidad||"—")}</div>
@@ -1150,6 +1157,7 @@ function pintarPersonal(){
         <span class="chip">${esc(p.genero)}</span>
         ${p.lista!=="Titular"?`<span class="chip info">${esc(p.lista)}</span>`:""}
         ${p.fueraListado?`<span class="chip bad">No figura en el listado</span>`:""}
+        ${p.noEnRol?`<span class="chip warn">No figura en el Rol de Combate 22SEP26</span>`:""}
         ${(p.alergias||"").trim()?`<span class="chip bad">Alergias</span>`:""}
         ${alistamientoOk(p)?`<span class="chip ok">Alistado</span>`:`<span class="chip warn">Alistamiento incompleto</span>`}
       </div></article>`;
@@ -1168,7 +1176,7 @@ function pintarPersonal(){
     <th>Especialidad</th><th>Cargo</th><th>Rol de combate</th><th>Destino</th><th>Elemento combinado</th>
     <th>Puesto (organigrama)</th><th>Armamento</th><th>Nro arma</th><th>Nivel instr.</th><th>Apto</th>
     <th>Vence</th><th>Sangre</th><th>Alergias</th><th>Documentación</th></tr></thead><tbody>${
-    L.map(p=>{const d=docsEstado(p); return `<tr class="${p.fueraListado?"fuera":""}" data-id="${p.id}" style="cursor:pointer">
+    L.map(p=>{const d=docsEstado(p); return `<tr class="${p.fueraListado?"fuera":""}${p.noEnRol?" rolno":""}" data-id="${p.id}" style="cursor:pointer">
       <td>${esc(p.lista)}</td><td>${esc(p.grado)}</td><td><b>${esc(nombreCompleto(p))}</b></td>
       <td class="mono">${esc(p.dni)}</td><td class="mono">${esc(p.cuil)}</td><td>${esc(p.genero)}</td>
       <td>${esc(p.especialidad)}</td><td>${esc(p.cargo)}</td><td>${esc(p.rolCombate)}</td>
@@ -1232,6 +1240,11 @@ function abrirLegajo(id){
       <div class="f"><label for="e_obraSocial">Obra social</label><input type="text" id="e_obraSocial" value="${esc(p.obraSocial)}"></div>
       <div class="f"><label for="e_obraSocialNro">Nro de credencial</label><input type="text" id="e_obraSocialNro" value="${esc(p.obraSocialNro)}"></div>
     </div>
+  </fieldset>
+
+  <fieldset class="fset"><legend>Situación en el Rol de Combate</legend>
+    <label class="chk"><input type="checkbox" id="e_noEnRol" ${p.noEnRol?"checked":""}>No figura en el Rol de Combate integral del 22SEP26</label>
+    <p class="ayuda" style="margin:8px 0 0">Las fichas marcadas se muestran en amarillo, para revisarlas contra el rol vigente.</p>
   </fieldset>
 
   <fieldset class="fset"><legend>Documentación migratoria — código QR</legend>
@@ -1421,6 +1434,7 @@ function leerLegajo(){
   ].forEach(k=>base[k]=v(k));
   ["docPlanilla","docCV","docLegajo","anexo27","credencial","kitPrimAux","equipoCampania"].forEach(k=>base[k]=b(k));
   base.fueraListado = $("#e_fueraListado") ? $("#e_fueraListado").checked : !!base.fueraListado;
+  base.noEnRol = $("#e_noEnRol") ? $("#e_noEnRol").checked : !!base.noEnRol;
   base.cursos = $$(".e_curso").filter(c=>c.checked).map(c=>c.value);
   base.foto = $("#fotoPrev").getAttribute("src") || "";
   base.qr = $("#qrPrev") ? ($("#qrPrev").getAttribute("src") || "") : (base.qr||"");
@@ -1747,7 +1761,8 @@ function imprimirFicha(p){
     ${fila("Cursos",(p.cursos||[]).join(", "))}
     ${p.licVence||p.licCat? fila("Licencia de conducir",(p.licVence||"")+" "+(p.licCat||"")) : ""}
     ${p.vehiculo? fila("Vehículo asignado",p.vehiculo) : ""}
-    ${p.fueraListado? fila("Situación en el listado","NO FIGURA en el listado integral vigente") : ""}</table>
+    ${p.fueraListado? fila("Situación en el listado","NO FIGURA en el listado integral vigente") : ""}
+    ${p.noEnRol? fila("Rol de Combate","NO FIGURA en el Rol de Combate integral del 22SEP26") : ""}</table>
   <div class="tt">ARMAMENTO Y MATERIAL</div><table>
     ${fila("Armamento principal",p.armamento)}${fila("Nro de armamento",p.armaNro)}
     ${fila("Armamento auxiliar",p.armaAux)}${fila("Nro auxiliar",p.armaAuxNro)}
