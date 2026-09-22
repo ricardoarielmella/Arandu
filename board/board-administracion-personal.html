@@ -898,6 +898,7 @@ function pintarTablero(){
   const armados   = P.filter(p=>p.armamento && p.armamento!=="Sin asignar").length;
   const listos    = P.filter(alistamientoOk).length;
   const noRol     = P.filter(p=>p.noEnRol).length;
+  const suplentes = P.filter(p=>p.lista==="Suplente").length;
   const conQr     = P.filter(p=>(p.qr||"").trim()).length;
   const qrLeidos  = P.filter(p=>(p.qrTexto||"").trim()).length;
   const vigentes  = P.filter(p=>!p.fueraListado);
@@ -915,7 +916,7 @@ function pintarTablero(){
     {n:conAlerg, t:"Con alergias", d:"Novedad sanitaria declarada", c:"info"},
     {n:armados, t:"Armamento asignado", d:"Con Nro de serie registrado", c:""},
     {n:listos, t:"Alistamiento completo", d:"Anexo 27 + credencial + kit + equipo", c:listos===P.length&&P.length?"ok":"warn"},
-    {n:noRol, t:"No figuran en el Rol 22SEP26", d:noRol? "Marcados en amarillo · a verificar":"Todos verificados", c:noRol?"warn":"ok"},
+    {n:noRol+suplentes, t:"Señalados en amarillo", d:noRol+" fuera del Rol 22SEP26 · "+suplentes+" suplentes", c:(noRol+suplentes)?"warn":"ok"},
     {n:conQr, t:"QR de migraciones", d:P.length? (qrLeidos+(qrLeidos===1?" descifrado":" descifrados")+" · restan "+(P.length-conQr)):"—",
      c:!P.length?"":(conQr===P.length?"ok":(conQr?"warn":"bad"))}
   ].map(k=>`<div class="kpi ${k.c}"><div class="n">${k.n}</div><div class="t">${esc(k.t)}</div><div class="d">${esc(k.d)}</div></div>`).join("");
@@ -1140,7 +1141,8 @@ function pintarPersonal(){
     const qr = p.qr
       ? `<img class="qrmini" src="${p.qr}" alt="Código QR de ${esc(nombreCompleto(p))}" data-qr="${p.id}" title="Ampliar el código QR">`
       : `<div class="qrmini vacia" aria-label="Sin código QR">Sin<br>QR</div>`;
-    return `<article class="ficha${p.fueraListado?" fuera":""}${p.noEnRol?" rolno":""}" data-id="${p.id}" tabindex="0">
+    const amarillo = p.noEnRol || p.lista==="Suplente";
+    return `<article class="ficha${p.fueraListado?" fuera":""}${amarillo?" rolno":""}" data-id="${p.id}" tabindex="0">
       <div class="cab">${foto}<div style="min-width:0;flex:1">
         <div class="nom">${esc(nombreCompleto(p))}</div>
         <div class="gr">${esc(g.c)} · ${esc(p.especialidadDetalle||p.especialidad||"—")}</div>
@@ -1155,7 +1157,7 @@ function pintarPersonal(){
         <span class="chip ${claseDoc(d.estado)}">Doc ${d.ok}/${d.total}</span>
         <span class="chip ${a.clase}">Apto ${esc(aptoEfectivo(p))}</span>
         <span class="chip">${esc(p.genero)}</span>
-        ${p.lista!=="Titular"?`<span class="chip info">${esc(p.lista)}</span>`:""}
+        ${p.lista!=="Titular"?`<span class="chip ${p.lista==="Suplente"?"warn":"info"}">${esc(p.lista)}</span>`:""}
         ${p.fueraListado?`<span class="chip bad">No figura en el listado</span>`:""}
         ${p.noEnRol?`<span class="chip warn">No figura en el Rol de Combate 22SEP26</span>`:""}
         ${(p.alergias||"").trim()?`<span class="chip bad">Alergias</span>`:""}
@@ -1176,7 +1178,7 @@ function pintarPersonal(){
     <th>Especialidad</th><th>Cargo</th><th>Rol de combate</th><th>Destino</th><th>Elemento combinado</th>
     <th>Puesto (organigrama)</th><th>Armamento</th><th>Nro arma</th><th>Nivel instr.</th><th>Apto</th>
     <th>Vence</th><th>Sangre</th><th>Alergias</th><th>Documentación</th></tr></thead><tbody>${
-    L.map(p=>{const d=docsEstado(p); return `<tr class="${p.fueraListado?"fuera":""}${p.noEnRol?" rolno":""}" data-id="${p.id}" style="cursor:pointer">
+    L.map(p=>{const d=docsEstado(p); return `<tr class="${p.fueraListado?"fuera":""}${(p.noEnRol||p.lista==="Suplente")?" rolno":""}" data-id="${p.id}" style="cursor:pointer">
       <td>${esc(p.lista)}</td><td>${esc(p.grado)}</td><td><b>${esc(nombreCompleto(p))}</b></td>
       <td class="mono">${esc(p.dni)}</td><td class="mono">${esc(p.cuil)}</td><td>${esc(p.genero)}</td>
       <td>${esc(p.especialidad)}</td><td>${esc(p.cargo)}</td><td>${esc(p.rolCombate)}</td>
@@ -1244,7 +1246,7 @@ function abrirLegajo(id){
 
   <fieldset class="fset"><legend>Situación en el Rol de Combate</legend>
     <label class="chk"><input type="checkbox" id="e_noEnRol" ${p.noEnRol?"checked":""}>No figura en el Rol de Combate integral del 22SEP26</label>
-    <p class="ayuda" style="margin:8px 0 0">Las fichas marcadas se muestran en amarillo, para revisarlas contra el rol vigente.</p>
+    <p class="ayuda" style="margin:8px 0 0">Las fichas marcadas se muestran en amarillo, para revisarlas contra el rol vigente. Los legajos de la lista de suplentes se señalan del mismo modo.</p>
   </fieldset>
 
   <fieldset class="fset"><legend>Documentación migratoria — código QR</legend>
