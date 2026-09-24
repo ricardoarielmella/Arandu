@@ -1236,6 +1236,8 @@ function abrirLegajo(id){
      return `<option value="${esc(val)}"${val===v?" selected":""}>${esc(t)}</option>`;}).join("")}</select>`;
   /* Los roles del listado son libres: se ofrece el catálogo sin impedir otro valor */
   const rolesUsados = [...new Set(ESTADO.personal.map(x=>x.rolCombate).filter(Boolean).concat(ROLES_COMBATE))].sort((a,b)=>a.localeCompare(b,"es"));
+  const vehCombUsados = [...new Set(ESTADO.personal.map(x=>(x.vehiculoCombate||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es"));
+  const vehMarUsados = [...new Set(ESTADO.personal.map(x=>(x.vehiculoMarcha||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es"));
   const d = docsEstado(p);
 
   $("#mCuerpo").innerHTML = `
@@ -1338,9 +1340,11 @@ function abrirLegajo(id){
       <div class="f"><label for="e_licVence">Licencia de conducir — vencimiento</label><input type="date" id="e_licVence" value="${esc(p.licVence)}"></div>
       <div class="f"><label for="e_licCat">Licencia de conducir — categorías</label><input type="text" id="e_licCat" class="mono" value="${esc(p.licCat)}"></div>
       <div class="f"><label for="e_vehiculoCombate">Vehículo de combate</label>
-        <input type="text" id="e_vehiculoCombate" value="${esc(p.vehiculoCombate||"")}"></div>
+        <input type="text" id="e_vehiculoCombate" list="listaVehComb" value="${esc(p.vehiculoCombate||"")}">
+        <datalist id="listaVehComb">${vehCombUsados.map(v=>`<option value="${esc(v)}">`).join("")}</datalist></div>
       <div class="f"><label for="e_vehiculoMarcha">Vehículo para la marcha</label>
-        <input type="text" id="e_vehiculoMarcha" value="${esc(p.vehiculoMarcha||"")}"></div>
+        <input type="text" id="e_vehiculoMarcha" list="listaVehMar" value="${esc(p.vehiculoMarcha||"")}">
+        <datalist id="listaVehMar">${vehMarUsados.map(v=>`<option value="${esc(v)}">`).join("")}</datalist></div>
       <div class="f full"><label>Cursos y capacitaciones</label>
         <div class="chks">${CURSOS.map(c=>`<label class="chk"><input type="checkbox" class="e_curso" value="${esc(c)}"${(p.cursos||[]).includes(c)?" checked":""}>${esc(c)}</label>`).join("")}</div></div>
     </div>
