@@ -295,8 +295,8 @@ tfoot td{font-weight:700;background:var(--panel2)}
       <div class="bd"><div id="gCategoria"></div></div></div>
     <div class="card"><div class="hd"><h3>Elemento combinado asignado</h3></div>
       <div class="bd"><div id="gElemento"></div></div></div>
-    <div class="card"><div class="hd"><h3>Nivel de instrucción militar</h3></div>
-      <div class="bd"><div id="gInstruccion"></div></div></div>
+    <div class="card"><div class="hd"><h3>Asignación de vehículos</h3><span class="sub" id="subVehiculos"></span></div>
+      <div class="bd"><div id="gVehiculos"></div></div></div>
     <div class="card"><div class="hd"><h3>Especialidad / escalafón</h3></div>
       <div class="bd"><div id="gEspecialidad"></div></div></div>
     <div class="card"><div class="hd"><h3>Situación de documentación</h3>
@@ -305,7 +305,7 @@ tfoot td{font-weight:700;background:var(--panel2)}
     <div class="card"><div class="hd"><h3>Documentación por requisito</h3>
         <span class="sub">Legajos que reúnen cada pieza</span></div>
       <div class="bd"><div id="gRequisitos"></div></div></div>
-    <div class="card"><div class="hd"><h3>Titulares, suplentes y conductores</h3></div>
+    <div class="card"><div class="hd"><h3>Titulares y conductores</h3></div>
       <div class="bd"><div id="gLista"></div></div></div>
     <div class="card"><div class="hd"><h3>Estado de salud — condiciones declaradas</h3></div>
       <div class="bd"><div id="gSalud"></div></div></div>
@@ -330,9 +330,9 @@ tfoot td{font-weight:700;background:var(--panel2)}
     <div class="campo"><label for="fEspecialidad">Especialidad</label><select id="fEspecialidad"></select></div>
     <div class="campo"><label for="fDoc">Documentación</label><select id="fDoc"></select></div>
     <div class="campo"><label for="fLista">Lista</label><select id="fLista"></select></div>
-    <div class="campo"><label for="fListado">Listado vigente</label><select id="fListado">
-      <option value="">Todos</option><option value="si">Sólo los vigentes</option>
-      <option value="no">Sólo los que no figuran</option></select></div>
+    <div class="campo"><label for="fVehiculo">Vehículo</label><select id="fVehiculo"></select></div>
+    <div class="campo"><label for="fArmaPrinc">Arma principal</label><select id="fArmaPrinc"></select></div>
+    <div class="campo"><label for="fArmaAux">Arma auxiliar</label><select id="fArmaAux"></select></div>
     <div class="campo"><label for="fOrden">Ordenar</label><select id="fOrden">
       <option value="jerarquia">Jerarquía</option><option value="apellido">Apellido</option>
       <option value="elemento">Elemento</option><option value="apto">Apto médico</option><option value="doc">Documentación</option></select></div>
@@ -513,7 +513,7 @@ const GRADOS = [
   {c:"Civ",      n:"Personal Civil",         cat:"Civil",       j:22}
 ];
 const CATEGORIAS = ["Oficial","Suboficial","Tropa","Civil","Sin categoría"];
-const LISTAS = ["Titular","Suplente","Conductor"];
+const LISTAS = ["Titular","Conductor"];
 
 const ESPECIALIDADES = ["Infantería","Infantería Paracaidista","Infantería de Montaña","Infantería Mecanizada",
   "Caballería","Caballería Blindada","Artillería","Artillería Antiaérea","Ingenieros","Comunicaciones",
@@ -898,7 +898,6 @@ function pintarTablero(){
   const armados   = P.filter(p=>p.armamento && p.armamento!=="Sin asignar").length;
   const listos    = P.filter(alistamientoOk).length;
   const noRol     = P.filter(p=>p.noEnRol).length;
-  const suplentes = P.filter(p=>p.lista==="Suplente").length;
   const conQr     = P.filter(p=>(p.qr||"").trim()).length;
   const qrLeidos  = P.filter(p=>(p.qrTexto||"").trim()).length;
   const vigentes  = P.filter(p=>!p.fueraListado);
@@ -906,17 +905,17 @@ function pintarTablero(){
   const fuera     = P.length - vigentes.length;
 
   $("#kpis").innerHTML = [
-    {n:vigentes.length, t:"Efectivos del listado vigente", d:titulares+" titulares · "+(vigentes.length-titulares)+" suplentes y conductores", c:""},
+    {n:vigentes.length, t:"Efectivos del listado vigente", d:titulares+" titulares · "+(vigentes.length-titulares)+" conductores", c:""},
     {n:fuera, t:"No figuran en el listado", d:fuera? "Marcados en rojo · a resolver por el comando":"Sin novedad", c:fuera?"bad":"ok"},
     {n:docComp, t:"Documentación completa", d:P.length? Math.round(docComp/P.length*100)+"% del efectivo":"—", c:docComp===P.length&&P.length?"ok":"warn"},
     {n:P.length-docComp, t:"Documentación pendiente", d:docSin+" sin iniciar", c:(P.length-docComp)?"bad":"ok"},
     {n:aptosA, t:"Apto médico A", d:"Anexo 27 vigente", c:"ok"},
     {n:noAptos, t:"No aptos (C/D)", d:"Requieren evaluación", c:noAptos?"bad":""},
-    {n:sinApto, t:"Sin apto / vencido", d:"Responsabilidad de comando", c:sinApto?"warn":""},
+    {n:P.filter(p=>!p.vehiculo).length, t:"Personal sin vehículo", d:P.filter(p=>!p.vehiculo).length? P.filter(p=>!p.vehiculo).map(nombreCompleto).join(", ") :"Todos asignados", c:P.filter(p=>!p.vehiculo).length?"warn":"ok"},
     {n:conAlerg, t:"Con alergias", d:"Novedad sanitaria declarada", c:"info"},
     {n:armados, t:"Armamento asignado", d:"Con Nro de serie registrado", c:""},
     {n:listos, t:"Alistamiento completo", d:"Anexo 27 + credencial + kit + equipo", c:listos===P.length&&P.length?"ok":"warn"},
-    {n:noRol+suplentes, t:"Señalados en amarillo", d:noRol+" fuera del Rol 22SEP26 · "+suplentes+" suplentes", c:(noRol+suplentes)?"warn":"ok"},
+    {n:noRol, t:"Señalados en amarillo", d:noRol+" fuera del Rol 22SEP26", c:noRol?"warn":"ok"},
     {n:conQr, t:"QR de migraciones", d:P.length? (qrLeidos+(qrLeidos===1?" descifrado":" descifrados")+" · restan "+(P.length-conQr)):"—",
      c:!P.length?"":(conQr===P.length?"ok":(conQr?"warn":"bad"))}
   ].map(k=>`<div class="kpi ${k.c}"><div class="n">${k.n}</div><div class="t">${esc(k.t)}</div><div class="d">${esc(k.d)}</div></div>`).join("");
@@ -948,8 +947,21 @@ function pintarTablero(){
   /* Elemento combinado */
   barras("#gElemento", mapaAArray(contar(P,p=>p.elementoId? orgNombre(p.elementoId):"Sin asignar")).slice(0,14), {multicolor:true});
 
-  /* Nivel de instrucción */
-  barras("#gInstruccion", mapaAArray(contar(P,p=>p.nivel), NIVELES).filter(d=>d.v), {multicolor:true});
+  /* Asignación de vehículos por destino */
+  const vehPorDestino = new Map();
+  P.forEach(p=>{
+    const v = (p.vehiculo||"").trim();
+    if(!v) return;
+    const dest = p.destino || orgNombre(p.orgId) || "Sin destino";
+    const vp = vehiculoPartes(p);
+    const tipo = vp? vp.tipo : v;
+    const key = dest + " — " + tipo;
+    vehPorDestino.set(key, (vehPorDestino.get(key)||0) + 1);
+  });
+  const vehDatos = [...vehPorDestino].map(([k,v])=>({k,v})).sort((a,b)=>b.v-a.v);
+  barras("#gVehiculos", vehDatos.slice(0,18), {multicolor:true});
+  const totalVeh = new Set(P.filter(p=>p.vehiculo).map(p=>{const vp=vehiculoPartes(p);return vp?vp.tipo:p.vehiculo;})).size;
+  $("#subVehiculos").textContent = P.filter(p=>p.vehiculo).length+" asignados · "+totalVeh+" tipos distintos";
 
   /* Especialidad */
   barras("#gEspecialidad", mapaAArray(contar(P,p=>p.especialidad)).slice(0,12), {multicolor:true});
@@ -1063,13 +1075,20 @@ function iniciarFiltros(){
   opciones($("#fDoc"), ESTADOS_DOC.concat(REQUISITOS.map(r=>({v:"falta:"+r.k, t:"Adeuda "+r.n}))), "Toda");
   opciones($("#fLista"), LISTAS, "Todas");
   opciones($("#fElemento"), orgPlano().map(o=>({v:o.id,t:" ".repeat(o.prof*2)+o.n})), "Todos");
+  const vehTipos = [...new Set(ESTADO.personal.map(p=>{const vp=vehiculoPartes(p);return vp?vp.tipo:""}).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es"));
+  opciones($("#fVehiculo"), vehTipos, "Todos");
+  const armasUsadas = [...new Set(ESTADO.personal.map(p=>p.armamento).filter(a=>a&&a!=="Sin asignar"))].sort();
+  opciones($("#fArmaPrinc"), ["Sin asignar",...armasUsadas], "Todas");
+  const armasAuxUsadas = [...new Set(ESTADO.personal.map(p=>p.armaAux).filter(a=>a&&a!=="Sin asignar"))].sort();
+  opciones($("#fArmaAux"), ["Sin asignar",...armasAuxUsadas], "Todas");
 }
 
 function filtrados(){
   const q  = ($("#fBuscar").value||"").trim().toLowerCase();
   const fg = $("#fGrado").value, fx = $("#fGenero").value, fa = $("#fApto").value;
   const fe = $("#fElemento").value, fs = $("#fEspecialidad").value;
-  const fd = $("#fDoc").value, fl = $("#fLista").value, fv = $("#fListado").value;
+  const fd = $("#fDoc").value, fl = $("#fLista").value;
+  const fveh = $("#fVehiculo").value, fap = $("#fArmaPrinc").value, faa = $("#fArmaAux").value;
   const rama = fe? new Set(orgDescendientes(fe)) : null;
   let L = ESTADO.personal.filter(p=>{
     if(fg && p.grado!==fg) return false;
@@ -1077,8 +1096,15 @@ function filtrados(){
     if(fa && aptoEfectivo(p)!==fa) return false;
     if(fs && p.especialidad!==fs) return false;
     if(fl && p.lista!==fl) return false;
-    if(fv==="si" && p.fueraListado) return false;
-    if(fv==="no" && !p.fueraListado) return false;
+    if(fveh){const vp=vehiculoPartes(p);if(!vp||vp.tipo!==fveh) return false;}
+    if(fap){
+      if(fap==="Sin asignar"){if(p.armamento&&p.armamento!=="Sin asignar") return false;}
+      else{if(p.armamento!==fap) return false;}
+    }
+    if(faa){
+      if(faa==="Sin asignar"){if(p.armaAux&&p.armaAux!=="Sin asignar") return false;}
+      else{if(p.armaAux!==faa) return false;}
+    }
     if(fd){
       if(fd.startsWith("falta:")){
         const r = REQUISITOS.find(x=>x.k===fd.slice(6));
@@ -1141,7 +1167,7 @@ function pintarPersonal(){
     const qr = p.qr
       ? `<img class="qrmini" src="${p.qr}" alt="Código QR de ${esc(nombreCompleto(p))}" data-qr="${p.id}" title="Ampliar el código QR">`
       : `<div class="qrmini vacia" aria-label="Sin código QR">Sin<br>QR</div>`;
-    const amarillo = p.noEnRol || p.lista==="Suplente";
+    const amarillo = p.noEnRol;
     return `<article class="ficha${p.fueraListado?" fuera":""}${amarillo?" rolno":""}" data-id="${p.id}" tabindex="0">
       <div class="cab">${foto}<div style="min-width:0;flex:1">
         <div class="nom">${esc(nombreCompleto(p))}</div>
@@ -1157,7 +1183,7 @@ function pintarPersonal(){
         <span class="chip ${claseDoc(d.estado)}">Doc ${d.ok}/${d.total}</span>
         <span class="chip ${a.clase}">Apto ${esc(aptoEfectivo(p))}</span>
         <span class="chip">${esc(p.genero)}</span>
-        ${p.lista!=="Titular"?`<span class="chip ${p.lista==="Suplente"?"warn":"info"}">${esc(p.lista)}</span>`:""}
+        ${p.lista!=="Titular"?`<span class="chip info">${esc(p.lista)}</span>`:""}
         ${p.fueraListado?`<span class="chip bad">No figura en el listado</span>`:""}
         ${p.noEnRol?`<span class="chip warn">No figura en el Rol de Combate 22SEP26</span>`:""}
         ${(p.alergias||"").trim()?`<span class="chip bad">Alergias</span>`:""}
@@ -1176,15 +1202,17 @@ function pintarPersonal(){
   $("#tablaPersonal").innerHTML = `<table><thead><tr>
     <th>Lista</th><th>Grado</th><th>Apellido y nombre</th><th>DNI</th><th>CUIL</th><th>Género</th>
     <th>Especialidad</th><th>Cargo</th><th>Rol de combate</th><th>Destino</th><th>Elemento combinado</th>
-    <th>Puesto (organigrama)</th><th>Armamento</th><th>Nro arma</th><th>Nivel instr.</th><th>Apto</th>
+    <th>Puesto (organigrama)</th><th>Armamento</th><th>Nro arma</th><th>Arma aux.</th><th>Nro aux.</th>
+    <th>Vehículo</th><th>Apto</th>
     <th>Vence</th><th>Sangre</th><th>Alergias</th><th>Documentación</th></tr></thead><tbody>${
-    L.map(p=>{const d=docsEstado(p); return `<tr class="${p.fueraListado?"fuera":""}${(p.noEnRol||p.lista==="Suplente")?" rolno":""}" data-id="${p.id}" style="cursor:pointer">
+    L.map(p=>{const d=docsEstado(p); return `<tr class="${p.fueraListado?"fuera":""}${p.noEnRol?" rolno":""}" data-id="${p.id}" style="cursor:pointer">
       <td>${esc(p.lista)}</td><td>${esc(p.grado)}</td><td><b>${esc(nombreCompleto(p))}</b></td>
       <td class="mono">${esc(p.dni)}</td><td class="mono">${esc(p.cuil)}</td><td>${esc(p.genero)}</td>
       <td>${esc(p.especialidad)}</td><td>${esc(p.cargo)}</td><td>${esc(p.rolCombate)}</td>
       <td>${esc(p.destino)}</td><td>${esc(orgNombre(p.elementoId))}</td><td>${esc(orgNombre(p.orgId))}</td>
-      <td>${esc(p.armamento)}</td><td class="mono">${esc(p.armaNro)}</td><td>${esc(p.vehiculo)}</td>
-      <td>${esc(p.nivel)}</td>
+      <td>${esc(p.armamento)}</td><td class="mono">${esc(p.armaNro)}</td>
+      <td>${esc(p.armaAux&&p.armaAux!=="Sin asignar"?p.armaAux:"—")}</td><td class="mono">${esc(p.armaAuxNro)}</td>
+      <td>${esc(p.vehiculo)}</td>
       <td>${esc(aptoEfectivo(p))}</td><td>${esc(p.aptoVence)}</td><td>${esc(p.sangre)}</td>
       <td>${esc(p.alergias)}</td>
       <td><span class="chip ${claseDoc(d.estado)}">${esc(d.estado)} ${d.ok}/${d.total}</span></td>
@@ -1246,7 +1274,7 @@ function abrirLegajo(id){
 
   <fieldset class="fset"><legend>Situación en el Rol de Combate</legend>
     <label class="chk"><input type="checkbox" id="e_noEnRol" ${p.noEnRol?"checked":""}>No figura en el Rol de Combate integral del 22SEP26</label>
-    <p class="ayuda" style="margin:8px 0 0">Las fichas marcadas se muestran en amarillo, para revisarlas contra el rol vigente. Los legajos de la lista de suplentes se señalan del mismo modo.</p>
+    <p class="ayuda" style="margin:8px 0 0">Las fichas marcadas se muestran en amarillo, para revisarlas contra el rol vigente. Revisar que todo el personal figure correctamente asignado.</p>
   </fieldset>
 
   <fieldset class="fset"><legend>Documentación migratoria — código QR</legend>
@@ -1306,7 +1334,6 @@ function abrirLegajo(id){
         <select id="e_orgId"><option value="">— Sin asignar —</option>${orgOpts(p.orgId)}</select></div>
       <div class="f full"><label for="e_elementoId">Elemento combinado asignado</label>
         <select id="e_elementoId"><option value="">— Sin asignar —</option>${elemOpts(p.elementoId)}</select></div>
-      <div class="f"><label for="e_nivel">Nivel de instrucción militar</label>${sel("e_nivel",NIVELES,p.nivel)}</div>
       <div class="f"><label for="e_licVence">Licencia de conducir — vencimiento</label><input type="date" id="e_licVence" value="${esc(p.licVence)}"></div>
       <div class="f"><label for="e_licCat">Licencia de conducir — categorías</label><input type="text" id="e_licCat" class="mono" value="${esc(p.licCat)}"></div>
       <div class="f full"><label for="e_vehiculo">Vehículo asignado (denominación / NI / dominio)</label>
@@ -1759,7 +1786,7 @@ function imprimirFicha(p){
     ${fila("Especialidad / escalafón",p.especialidad)}${fila("Arma / esp según listado",p.especialidadDetalle)}
     ${fila("Cargo / función",p.cargo)}${fila("Rol de combate",p.rolCombate)}
     ${fila("Destino / unidad de revista",p.destino)}${fila("Puesto en el organigrama",orgNombre(p.orgId))}
-    ${fila("Elemento combinado",orgNombre(p.elementoId))}${fila("Nivel de instrucción militar",p.nivel)}
+    ${fila("Elemento combinado",orgNombre(p.elementoId))}
     ${fila("Cursos",(p.cursos||[]).join(", "))}
     ${p.licVence||p.licCat? fila("Licencia de conducir",(p.licVence||"")+" "+(p.licCat||"")) : ""}
     ${p.vehiculo? fila("Vehículo asignado",p.vehiculo) : ""}
@@ -1930,12 +1957,64 @@ function iniciar(){
   $("#btnImprimirFicha").onclick = ()=>imprimirFicha(leerLegajo());
 
   /* Filtros */
-  ["fBuscar","fGrado","fGenero","fApto","fElemento","fEspecialidad","fDoc","fLista","fListado","fOrden"]
+  ["fBuscar","fGrado","fGenero","fApto","fElemento","fEspecialidad","fDoc","fLista","fVehiculo","fArmaPrinc","fArmaAux","fOrden"]
     .forEach(id=>$("#"+id).addEventListener("input", pintarPersonal));
-  $("#btnLimpiar").onclick = ()=>{ ["fBuscar","fGrado","fGenero","fApto","fElemento","fEspecialidad","fDoc","fLista","fListado"]
+  $("#btnLimpiar").onclick = ()=>{ ["fBuscar","fGrado","fGenero","fApto","fElemento","fEspecialidad","fDoc","fLista","fVehiculo","fArmaPrinc","fArmaAux"]
     .forEach(id=>$("#"+id).value=""); ESTADO.filtroOrg=null; pintarPersonal(); };
   $("#btnVista").onclick = ()=>{ ESTADO.vistaTabla = !ESTADO.vistaTabla; pintarPersonal(); };
-  $("#btnImprimirFichas").onclick = ()=>window.print();
+  $("#btnImprimirFichas").onclick = ()=>{
+    const L = filtrados();
+    if(!L.length){ toast("Sin resultados para imprimir."); return; }
+    const filtrosActivos = [];
+    if($("#fGrado").value) filtrosActivos.push("Grado: "+$("#fGrado").value);
+    if($("#fGenero").value) filtrosActivos.push("Género: "+$("#fGenero").value);
+    if($("#fApto").value) filtrosActivos.push("Apto: "+$("#fApto").value);
+    if($("#fLista").value) filtrosActivos.push("Lista: "+$("#fLista").value);
+    if($("#fElemento").value) filtrosActivos.push("Elemento: "+orgNombre($("#fElemento").value));
+    if($("#fEspecialidad").value) filtrosActivos.push("Especialidad: "+$("#fEspecialidad").value);
+    if($("#fVehiculo").value) filtrosActivos.push("Vehículo: "+$("#fVehiculo").value);
+    if($("#fArmaPrinc").value) filtrosActivos.push("Arma ppal: "+$("#fArmaPrinc").value);
+    if($("#fArmaAux").value) filtrosActivos.push("Arma aux: "+$("#fArmaAux").value);
+    if($("#fBuscar").value) filtrosActivos.push("Búsqueda: «"+$("#fBuscar").value+"»");
+    const w = window.open("","_blank","width=1100,height=800");
+    if(!w){ toast("El navegador bloqueó la ventana de impresión."); return; }
+    w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+    <title>Listado de Personal — Ejercicio ARANDÚ 26</title>
+    <style>body{font-family:Arial,Helvetica,sans-serif;margin:18px;color:#111;font-size:11px}
+     h1{font-size:14px;margin:0 0 2px}h2{font-size:10px;margin:0 0 8px;font-weight:normal;color:#555}
+     table{border-collapse:collapse;width:100%;margin-top:8px}
+     th,td{border:1px solid #999;padding:3px 5px;text-align:left;vertical-align:top}
+     th{background:#e8e8e4;font-size:10px;white-space:nowrap}
+     .num{text-align:center} .mono{font-family:monospace;font-size:10px}
+     .enc{display:flex;gap:12px;align-items:flex-start;margin-bottom:8px}
+     .enc img{width:42px;height:42px;object-fit:contain}
+     .filtros{font-size:10px;color:#444;margin-bottom:6px}
+     .pie{font-size:8px;color:#666;margin-top:12px;border-top:1px solid #ccc;padding-top:4px}
+     @page{size:landscape;margin:12mm}</style></head><body>
+    <div class="enc"><img src="${ESCUDO_B64}" alt="">
+      <div><h1>LISTADO DE PERSONAL — Ejercicio ARANDÚ 26</h1>
+        <h2>Cdo FDR — Departamento Personal — ${new Date().toLocaleString("es-AR",{dateStyle:"long"})}</h2></div></div>
+    ${filtrosActivos.length?`<div class="filtros"><b>Filtros aplicados:</b> ${esc(filtrosActivos.join(" · "))}</div>`:""}
+    <div style="font-size:11px;font-weight:bold;margin-bottom:4px">${L.length} efectivo${L.length!==1?"s":""}</div>
+    <table><thead><tr><th class="num">Nro</th><th>Lista</th><th>Grado</th><th>Apellido y nombre</th><th>DNI</th>
+      <th>Género</th><th>Destino</th><th>Elemento</th><th>Rol de combate</th>
+      <th>Armamento</th><th>Nro serie</th><th>Arma aux.</th><th>Nro aux.</th>
+      <th>Vehículo</th><th>Apto</th><th>Sangre</th></tr></thead><tbody>${
+    L.map((p,i)=>`<tr>
+      <td class="num">${i+1}</td><td>${esc(p.lista)}</td><td>${esc(p.grado)}</td>
+      <td><b>${esc(nombreCompleto(p))}</b></td><td class="mono">${esc(p.dni)}</td>
+      <td>${esc(p.genero)}</td><td>${esc(p.destino)}</td>
+      <td>${esc(orgNombre(p.orgId)||orgNombre(p.elementoId))}</td><td>${esc(p.rolCombate)}</td>
+      <td>${esc(p.armamento==="Sin asignar"?"—":p.armamento)}</td><td class="mono">${esc(p.armaNro)}</td>
+      <td>${esc(p.armaAux&&p.armaAux!=="Sin asignar"?p.armaAux:"—")}</td><td class="mono">${esc(p.armaAuxNro)}</td>
+      <td>${esc(p.vehiculo)}</td><td>${esc(aptoEfectivo(p))}</td><td>${esc(p.sangre)}</td></tr>`).join("")
+    }</tbody></table>
+    <div class="pie">Documento generado por el Board de Administración de Personal — ${new Date().toLocaleString("es-AR")}.
+    Uso interno. Contiene datos personales: su tratamiento se rige por la normativa de protección de datos.</div>
+    </body></html>`);
+    w.document.close();
+    setTimeout(()=>{ w.focus(); w.print(); }, 350);
+  };
   $("#btnCsvFiltro").onclick = ()=>exportarCsv(filtrados());
   $("#fichas").addEventListener("click", e=>{ const f=e.target.closest(".ficha"); if(f) abrirLegajo(f.dataset.id); });
   $("#fichas").addEventListener("keydown", e=>{ const f=e.target.closest(".ficha");
