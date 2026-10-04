@@ -127,12 +127,12 @@ textarea{resize:vertical;min-height:62px;font-family:var(--f)}
 .chip.info{color:var(--info);border-color:color-mix(in srgb,var(--info) 35%,var(--line))}
 
 /* ---------- Fichas de personal ---------- */
-.fichas{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:12px}
+.fichas{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
 .ficha{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);box-shadow:var(--shadow);
        overflow:hidden;cursor:pointer;transition:transform .12s ease,box-shadow .12s ease}
 .ficha:hover{transform:translateY(-2px);box-shadow:0 3px 6px rgba(20,32,26,.09),0 10px 24px rgba(20,32,26,.11)}
-.ficha .cab{display:flex;gap:11px;padding:12px}
-.ficha .qrmini{width:58px;height:58px;border-radius:6px;border:1px solid var(--line);background:#fff;
+.ficha .cab{display:flex;gap:8px;padding:12px;justify-content:center}
+.ficha .qrmini{width:92px;height:92px;border-radius:5px;border:2px solid var(--line);background:#fff;
   object-fit:contain;flex:0 0 auto;cursor:zoom-in}
 .ficha .qrmini.vacia{background:var(--panel2);border-style:dashed;display:flex;align-items:center;justify-content:center;
   font-size:9px;color:var(--muted);text-align:center;line-height:1.15;cursor:default}
@@ -146,9 +146,19 @@ textarea{resize:vertical;min-height:62px;font-family:var(--f)}
 .qrzoom .caja .dato{font-size:12px;color:#5d6a62;margin-top:2px}
 .qrzoom .caja .cont{font-size:11px;color:#5d6a62;margin-top:8px;word-break:break-all;
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-.foto{width:60px;height:74px;border-radius:8px;object-fit:cover;background:var(--panel2);border:1px solid var(--line);flex:0 0 auto}
-.foto.ph{display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--muted)}
-.ficha .nom{font-weight:660;font-size:13.5px;line-height:1.25}
+.foto{width:108px;height:135px;border-radius:6px;object-fit:cover;background:var(--panel2);border:2px solid var(--line);flex:0 0 auto}
+.foto.ph{display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:var(--muted)}
+.ficha .grado-tag{font-size:11px;color:var(--bad);font-weight:700;text-transform:uppercase;letter-spacing:1.2px;
+  text-align:center;padding:0 12px}
+.ficha .nom{font-weight:700;font-size:15px;line-height:1.2;text-align:center;padding:0 12px}
+.ficha .dni-space{width:calc(100% - 24px);max-width:200px;aspect-ratio:8.56/5.40;margin:0 auto;
+  border:2px dashed var(--muted);border-radius:5px;display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-size:10px;text-align:center;padding:4px;cursor:pointer;position:relative;overflow:hidden}
+.ficha .dni-space.con{border-style:solid;border-color:var(--ok);padding:0}
+.ficha .dni-space.con img{width:100%;height:100%;object-fit:cover}
+.ficha .veh-tag{font-size:11.5px;font-weight:600;text-align:center;padding:4px 8px;margin:0 12px;
+  border-radius:4px;color:var(--ok);background:color-mix(in srgb,var(--ok) 8%,transparent)}
+.ficha .veh-tag.vacio{color:var(--muted);background:var(--panel2)}
 .ficha .gr{font-size:12px;color:var(--muted)}
 .ficha .meta{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.35}
 .ficha .pie{display:flex;flex-wrap:wrap;gap:5px;padding:0 12px 12px}
@@ -1212,31 +1222,28 @@ function pintarPersonal(){
     const g = gradoInfo(p.grado), a = aptoInfo(aptoEfectivo(p)), d = docsEstado(p);
     const foto = p.foto? `<img class="foto" src="${p.foto}" alt="Fotografía de ${esc(nombreCompleto(p))}">`
                        : `<div class="foto ph">${esc(iniciales(p))}</div>`;
-    const veh = vehiculoPartes(p);
     const qr = p.qr
       ? `<img class="qrmini" src="${p.qr}" alt="Código QR de ${esc(nombreCompleto(p))}" data-qr="${p.id}" title="Ampliar el código QR">`
       : `<div class="qrmini vacia" aria-label="Sin código QR">Sin<br>QR</div>`;
     const amarillo = p.noEnRol;
+    const primerNombre = (p.nombre||"").split(/\s+/)[0];
+    const dniImg = p.fotoDni
+      ? `<div class="dni-space con"><img src="${p.fotoDni}" alt="DNI"></div>`
+      : `<div class="dni-space" data-dni="${p.id}" title="Clic para cargar foto del DNI">Foto DNI<br>(8.56 × 5.40 cm)</div>`;
+    const vehMarcha = p.vehiculoMarcha
+      ? `<div class="veh-tag">${esc(p.vehiculoMarcha)}</div>`
+      : `<div class="veh-tag vacio">Sin vehículo asignado</div>`;
     return `<article class="ficha${p.fueraListado?" fuera":""}${amarillo?" rolno":""}" data-id="${p.id}" tabindex="0">
-      <div class="cab">${foto}<div style="min-width:0;flex:1">
-        <div class="nom">${esc(nombreCompleto(p))}</div>
-        <div class="gr">${esc(g.c)} · ${esc(p.especialidadDetalle||p.especialidad||"—")}</div>
-        <div class="meta"><b>DNI:</b> <span class="mono">${esc(p.dni||"—")}</span><br>
-          ${esc(p.cargo||p.destino||"Sin cargo")}<br>
-          <b>Rol:</b> ${esc(p.rolCombate||"—")}<br>
-          <b>Elem:</b> ${esc(orgNombre(p.orgId)||orgNombre(p.elementoId)||"Sin asignar")}<br>
-          <b>Arma:</b> ${esc(p.armamento==="Sin asignar"?"—":p.armamento)} ${p.armaNro?'<span class="mono">Nro '+esc(p.armaNro)+'</span>':""}<br>
-          <b>Veh:</b> ${p.vehiculoCombate? esc(p.vehiculoCombate) : ""}${p.vehiculoCombate&&p.vehiculoMarcha?" / ":""}${p.vehiculoMarcha? esc(p.vehiculoMarcha) : ""}${!p.vehiculoCombate&&!p.vehiculoMarcha?(veh? esc(veh.tipo):"—"):""}
-        </div></div>${qr}</div>
+      <div class="cab">${foto}${qr}</div>
+      <div class="grado-tag">${esc(g.c)}</div>
+      <div class="nom">${esc(p.apellido)} ${esc(primerNombre)}</div>
+      ${dniImg}
+      ${vehMarcha}
       <div class="pie">
         <span class="chip ${claseDoc(d.estado)}">Doc ${d.ok}/${d.total}</span>
         <span class="chip ${a.clase}">Apto ${esc(aptoEfectivo(p))}</span>
-        <span class="chip">${esc(p.genero)}</span>
-        ${p.lista!=="Titular"?`<span class="chip info">${esc(p.lista)}</span>`:""}
-        ${p.fueraListado?`<span class="chip bad">No figura en el listado</span>`:""}
-        ${p.noEnRol?`<span class="chip warn">No figura en el Rol de Combate 22SEP26</span>`:""}
-        ${(p.alergias||"").trim()?`<span class="chip bad">Alergias</span>`:""}
-        ${alistamientoOk(p)?`<span class="chip ok">Alistado</span>`:`<span class="chip warn">Alistamiento incompleto</span>`}
+        ${p.fueraListado?`<span class="chip bad">No en listado</span>`:""}
+        ${p.noEnRol?`<span class="chip warn">No en Rol</span>`:""}
       </div></article>`;
   }).join("");
 
@@ -1245,6 +1252,33 @@ function pintarPersonal(){
       ev.stopPropagation();
       const p = ESTADO.personal.find(x=>x.id===el.dataset.qr);
       if(p && p.qr) abrirQrZoom(p);
+    };
+  });
+
+  $$("#fichas .dni-space[data-dni]").forEach(el=>{
+    el.onclick = ev=>{
+      ev.stopPropagation();
+      const inp = document.createElement("input");
+      inp.type="file"; inp.accept="image/*";
+      inp.onchange = ()=>{
+        const f = inp.files[0]; if(!f) return;
+        const reader = new FileReader();
+        reader.onload = ()=>{
+          const img = new Image();
+          img.onload = ()=>{
+            const MAX=320, r=Math.min(MAX/img.width,MAX/img.height,1);
+            const c=document.createElement("canvas");
+            c.width=img.width*r; c.height=img.height*r;
+            c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+            const dataUrl=c.toDataURL("image/jpeg",0.7);
+            const p=ESTADO.personal.find(x=>x.id===el.dataset.dni);
+            if(p){p.fotoDni=dataUrl; guardar(); pintarPersonal();}
+          };
+          img.src=reader.result;
+        };
+        reader.readAsDataURL(f);
+      };
+      inp.click();
     };
   });
 
