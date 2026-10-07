@@ -542,9 +542,11 @@ tfoot td{font-weight:700;background:var(--panel2)}
 
     <div class="card"><div class="hd"><h3>Exportar</h3></div><div class="bd">
       <div class="row">
+        <button class="btn pri" id="btnDrive" style="display:none">Guardar en Google Drive</button>
         <button class="btn" id="btnExpJson">Descargar JSON completo</button>
         <button class="btn" id="btnExpCsv">Descargar CSV</button>
       </div>
+      <p class="ayuda" id="estadoDrive" style="margin-top:10px"></p>
       <p class="ayuda" style="margin-top:10px">El JSON incluye fotografías y la estructura del organigrama.
       Es el formato de respaldo recomendado.</p>
     </div></div>
@@ -1990,7 +1992,24 @@ function aFilaCsv(p){
     return /[",;\n]/.test(v)? '"'+v.replace(/"/g,'""')+'"' : v;
   }).join(";");
 }
-function descargar(nombre, contenido, tipo){
+/* Capacidades de la versión publicada en Claude; en el archivo local no existen y se usa el método común. */
+function usarCap(nombre){
+  return (window.claude && typeof window.claude.use==="function")
+    ? window.claude.use(nombre).catch(()=>null) : Promise.resolve(null);
+}
+async function descargar(nombre, contenido, tipo){
+  const dl = await usarCap("downloads");
+  if(dl){
+    try{ await dl.save({filename:nombre, data:new Blob([contenido],{type:tipo})}); toast("Archivo listo: "+nombre); }
+    catch(e){
+      const c = e && e.code;
+      if(c==="declined") return;
+      toast(c==="rate_limited"? "Ya hay una descarga pendiente de confirmar." :
+            c==="too_large"? "El archivo supera el límite de descarga de este dispositivo." :
+            "No se pudo descargar ("+(c||"error")+").");
+    }
+    return;
+  }
   const b = new Blob([contenido],{type:tipo});
   const u = URL.createObjectURL(b);
   const a = document.createElement("a"); a.href=u; a.download=nombre; a.click();
@@ -2004,6 +2023,57 @@ function exportarJson(){
   descargar("datos-personal-"+new Date().toISOString().slice(0,10)+".json",
     JSON.stringify({v:1,generado:new Date().toISOString(),personal:ESTADO.personal,org:ESTADO.org},null,1),
     "application/json");
+}
+
+const DRIVE = "Google Drive";
+function sello(){
+  const d = new Date(), z = n=>String(n).padStart(2,"0");
+  return d.getDate()+"-"+(d.getMonth()+1)+"-"+String(d.getFullYear()).slice(2)+" "+z(d.getHours())+"h"+z(d.getMinutes());
+}
+async function guardarEnDrive(){
+  const mcp = await usarCap("mcp");
+  if(!mcp){ toast("Guardar en Drive solo funciona desde la versión publicada en Claude."); return; }
+  const btn = $("#btnDrive"), est = $("#estadoDrive");
+  btn.disabled = true; est.textContent = "Preparando el archivo…";
+  try{
+    const lt = await mcp.listTools();
+    if(!lt.fileArgs){
+      est.textContent = "Este dispositivo no permite enviar archivos grandes a Drive. Use «Descargar JSON completo» y guárdelo en Drive desde el menú Compartir.";
+      return;
+    }
+    /* Se guarda junto al último JSON del board que haya en Drive */
+    let parentId;
+    try{
+      const r = await mcp.callTool(DRIVE, "search_files", {
+        query:"title contains 'datos-personal' and mimeType = 'application/json'", excludeContentSnippets:true, pageSize:20});
+      const files = (r.payload && r.payload.files) || [];
+      files.sort((a,b)=>(b.modifiedTime||"").localeCompare(a.modifiedTime||""));
+      if(files[0] && files[0].parentId) parentId = files[0].parentId;
+    }catch(e){ console.warn("Búsqueda en Drive:", e); }
+    const titulo = "datos-personal "+sello()+".json";
+    const txt = JSON.stringify({v:1,generado:new Date().toISOString(),personal:ESTADO.personal,org:ESTADO.org},null,1);
+    est.textContent = "Subiendo "+(txt.length/1048576).toFixed(1)+" MB a Google Drive…";
+    const entrada = {title:titulo, contentMimeType:"application/json", disableConversionToGoogleType:true,
+      base64Content:{$file:{data:new Blob([txt],{type:"application/json"}), name:"datos-personal.json", type:"application/json"}}};
+    if(parentId) entrada.parentId = parentId;
+    const res = await mcp.callTool(DRIVE, "create_file", entrada);
+    const f = res.payload || {};
+    est.innerHTML = "Guardado en Drive: <b>"+esc(f.title||titulo)+"</b> — "+new Date().toLocaleTimeString("es-AR");
+    toast("Copia guardada en Google Drive.");
+  }catch(e){
+    const c = e && e.code;
+    est.textContent =
+      c==="needs_reauth"? "Se deberá reconectar Google Drive en claude.ai → Configuración → Conectores." :
+      c==="server_not_connected"||c==="selection_required"? "Se deberá agregar Google Drive en claude.ai → Configuración → Conectores." :
+      c==="not_in_manifest"||c==="approval_required"? "No se autorizó el acceso a Drive para esta página. Se podrá habilitar desde el menú Permisos." :
+      c==="blocked_by_policy"? "La organización bloquea el acceso a Drive desde esta página." :
+      c==="tool_error"? "Drive rechazó el archivo: "+(e.message||"") :
+      c==="server_unavailable"||c==="upstream_error"? "Drive no respondió. Antes de reintentar se verificará en Drive si la copia ya se creó." :
+      c==="bad_request"? "El archivo es demasiado grande para enviarlo a Drive desde aquí. Use «Descargar JSON completo»." :
+      "No se pudo guardar en Drive ("+(c||"error")+").";
+  }finally{
+    btn.disabled = false;
+  }
 }
 function parsearCsv(txt){
   const filas=[]; let f=[],c="",q=false;
@@ -2402,6 +2472,8 @@ function iniciar(){
 
   /* Datos */
   $("#btnExpJson").onclick = exportarJson;
+  $("#btnDrive").onclick = guardarEnDrive;
+  usarCap("mcp").then(m=>{ if(m) $("#btnDrive").style.display = ""; });
   $("#btnExpCsv").onclick  = ()=>exportarCsv(ESTADO.personal);
   let modoImp = "reemplazar";
   $("#btnImpJson").onclick      = ()=>{ modoImp="reemplazar"; $("#archivoImp").click(); };
