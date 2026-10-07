@@ -2,7 +2,9 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3f5c3a">
+<meta name="mobile-web-app-capable" content="yes">
 <title>FDR Departamento Personal “Ejercicio Arandú” Año 2026</title>
 <style>
 /* ============================================================
@@ -43,7 +45,7 @@ a{color:var(--info)}
 html[data-tema="oscuro"] .top .escudo{filter:invert(1) brightness(1.4)}
 .top .id{min-width:0}
 .top .id b{display:block;font-size:14px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.top .id span{display:block;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .id>span{display:block;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nav{display:flex;gap:2px;margin-left:auto;flex-wrap:wrap}
 .nav button{background:transparent;border:1px solid transparent;border-radius:8px;padding:7px 13px;cursor:pointer;
             font-weight:560;color:var(--muted)}
@@ -270,12 +272,96 @@ tfoot td{font-weight:700;background:var(--panel2)}
        opacity:0;pointer-events:none;transition:all .22s ease;box-shadow:0 8px 26px rgba(0,0,0,.3)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
+.nav .ni{display:none}
+.solo-movil{display:none}
+
 @media (max-width:860px){
-  .org{grid-template-columns:1fr}
+  .org{grid-template-columns:minmax(0,1fr)}
   .top{flex-wrap:wrap}
   .nav{width:100%;margin-left:0;order:3;overflow-x:auto}
 }
+
+/* ---------- Celular ---------- */
+@media (max-width:640px){
+  body{font-size:13.5px}
+  .solo-pc{display:none}
+  span.solo-movil{display:inline}
+  .campo.solo-movil{display:flex}
+
+  .top{flex-wrap:nowrap;gap:10px;padding:8px 12px;padding-top:calc(8px + env(safe-area-inset-top))}
+  .top .escudo{width:32px;height:32px}
+  .top .id{flex:1}
+  .top .id b{font-size:13.5px}
+  .top .id>span{font-size:10.5px}
+  .top .util{gap:5px}
+
+  .nav{position:fixed;left:0;right:0;bottom:0;z-index:70;margin:0;width:auto;order:0;overflow:visible;
+       display:grid;grid-template-columns:repeat(5,1fr);gap:2px;background:var(--panel);
+       border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(20,32,26,.10);
+       padding:4px 6px calc(4px + env(safe-area-inset-bottom))}
+  .nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+              min-height:52px;padding:4px 2px;font-size:10.5px;border-radius:10px}
+  .nav button[aria-current="page"]{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+  .nav .ni{display:block;width:22px;height:22px}
+
+  .wrap{padding:12px 12px calc(86px + env(safe-area-inset-bottom))}
+  .toast{bottom:calc(78px + env(safe-area-inset-bottom));max-width:calc(100% - 24px);text-align:center}
+  .sec-tit{flex-direction:column;gap:2px;margin:16px 0 8px}
+  .sec-tit h2{font-size:16px}
+
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .kpi{padding:10px 12px}
+  .kpi .n{font-size:24px}
+  .kpi .t{font-size:10.5px}
+  .kpi .d{font-size:11px}
+  .card>.hd{flex-wrap:wrap;padding:10px 12px}
+  .card>.bd{padding:12px}
+  .barra{grid-template-columns:96px 1fr 40px;gap:8px}
+  .veh-cols{grid-template-columns:1fr}
+
+  input[type=text],input[type=date],input[type=number],input[type=search],select,textarea{font-size:16px}
+  .btn{min-height:38px}
+  .btn.sm{min-height:34px}
+
+  .filtros{gap:8px}
+  .filtros .buscador{flex:1 1 calc(100% - 120px);min-width:0}
+  .filtros:not(.abiertos) .campo:not(.buscador):not(.solo-movil){display:none}
+  .filtros.abiertos .campo:not(.buscador):not(.solo-movil){flex:1 1 calc(50% - 8px);min-width:0}
+  .filtros .campo select{width:100%}
+
+  .fichas{grid-template-columns:1fr;gap:8px}
+  .ficha{display:grid;grid-template-columns:64px minmax(0,1fr) 84px;column-gap:10px;row-gap:3px;
+         grid-template-areas:"foto grado qr" "foto nom qr" "foto veh dni" "pie pie dni";
+         padding:10px;align-items:start}
+  .ficha .cab{display:contents}
+  .ficha .foto{grid-area:foto;width:64px;height:80px;border-radius:5px}
+  .ficha .foto.ph{font-size:20px}
+  .ficha .qrmini{grid-area:qr;width:64px;height:64px;justify-self:end}
+  .ficha .grado-tag{grid-area:grado;text-align:left;padding:0;font-size:10.5px;letter-spacing:.8px}
+  .ficha .nom{grid-area:nom;text-align:left;padding:0;font-size:14px}
+  .ficha .veh-tag{grid-area:veh;justify-self:start;margin:3px 0 0;padding:2px 7px;font-size:11px;text-align:left}
+  .ficha .dni-space{grid-area:dni;width:84px;max-width:none;margin:0;font-size:8.5px;align-self:end;line-height:1.15}
+  .ficha .pie{grid-area:pie;padding:4px 0 0;gap:4px}
+
+  th,td{padding:7px 9px}
+  table{font-size:12px}
+
+  .arbol-caja{max-height:45vh!important}
+
+  .modal{padding:0}
+  .modal .caja,.modal .caja.sm{width:100%;min-height:100%;border-radius:0;border:none}
+  .modal .mhd{border-radius:0;padding:12px 14px;padding-top:calc(12px + env(safe-area-inset-top))}
+  .modal .mbd{padding:14px}
+  .modal .mpie{position:sticky;bottom:0;border-radius:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
+  .fset{padding:12px}
+  .fgrid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  .foto-edit{flex-wrap:wrap}
+}
+@media (hover:none){
+  .ficha:hover{transform:none;box-shadow:var(--shadow)}
+}
 @media print{
+  .solo-movil{display:none!important}
   .top,.filtros,.nav,.btn,.modal,.no-print{display:none!important}
   body{background:#fff}
   .wrap{max-width:none;padding:0}
@@ -289,15 +375,15 @@ tfoot td{font-weight:700;background:var(--panel2)}
 <header class="top">
   <img class="escudo" id="escudo" alt="Escudo Cdo FDR">
   <div class="id">
-    <b>FDR Departamento Personal “Ejercicio Arandú” Año 2026</b>
+    <b><span class="solo-pc">FDR Departamento Personal “Ejercicio Arandú” Año 2026</span><span class="solo-movil">Ejercicio Arandú 2026</span></b>
     <span id="subtitulo">TC MELLA Ricardo Ariel — J Dpto Personal</span>
   </div>
   <nav class="nav" id="nav">
-    <button data-v="tablero" aria-current="page">Tablero</button>
-    <button data-v="personal">Personal</button>
-    <button data-v="organigrama">Organigrama</button>
-    <button data-v="planillas">Planillas</button>
-    <button data-v="datos">Datos</button>
+    <button data-v="tablero" aria-current="page"><svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V11M11 20V4M17 20v-7M2 20h20"/></svg>Tablero</button>
+    <button data-v="personal"><svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>Personal</button>
+    <button data-v="organigrama"><svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="2" y="17" width="6" height="5" rx="1"/><rect x="16" y="17" width="6" height="5" rx="1"/><path d="M12 7v5M5 17v-5h14v5"/></svg>Organigrama</button>
+    <button data-v="planillas"><svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Planillas</button>
+    <button data-v="datos"><svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>Datos</button>
   </nav>
   <div class="util">
     <button class="btn sm" id="btnTema" title="Cambiar entre tema claro y oscuro">Tema</button>
@@ -316,7 +402,7 @@ tfoot td{font-weight:700;background:var(--panel2)}
   <div id="avisoInicio"></div>
   <div class="kpis" id="kpis"></div>
 
-  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr));margin-top:16px">
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));margin-top:16px">
     <div class="card"><div class="hd"><h3>Personal por género</h3><span class="sub" id="subGenero"></span></div>
       <div class="bd"><div id="gGenero"></div></div></div>
     <div class="card"><div class="hd"><h3>Apto médico (Anexo 27)</h3><span class="sub" id="subApto"></span></div>
@@ -355,6 +441,8 @@ tfoot td{font-weight:700;background:var(--panel2)}
   <div class="filtros">
     <div class="campo buscador"><label for="fBuscar">Buscar</label>
       <input type="search" id="fBuscar" placeholder="Apellido, nombre, DNI, MI, cargo, arma…"></div>
+    <div class="campo solo-movil"><label>&nbsp;</label>
+      <button class="btn" id="btnFiltros" aria-expanded="false">Filtros</button></div>
     <div class="campo"><label for="fGrado">Grado</label><select id="fGrado"></select></div>
     <div class="campo"><label for="fGenero">Género</label><select id="fGenero"></select></div>
     <div class="campo"><label for="fApto">Apto médico</label><select id="fApto"></select></div>
@@ -389,7 +477,7 @@ tfoot td{font-weight:700;background:var(--panel2)}
     <div class="card">
       <div class="hd"><h3>Estructura</h3>
         <span class="sub"><button class="btn sm" id="btnExpandir">Expandir todo</button></span></div>
-      <div class="bd" style="max-height:70vh;overflow:auto">
+      <div class="bd arbol-caja" style="max-height:70vh;overflow:auto">
         <ul class="arbol" id="arbol"></ul>
       </div>
       <div class="bd" style="border-top:1px solid var(--line2);display:flex;gap:6px;flex-wrap:wrap">
@@ -438,7 +526,7 @@ tfoot td{font-weight:700;background:var(--panel2)}
 <!-- =================== DATOS =================== -->
 <section class="vista" id="v-datos">
   <div class="sec-tit"><h2>Gestión de datos</h2><p>Copia de seguridad, portabilidad e importación</p></div>
-  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))">
     <div class="card"><div class="hd"><h3>Archivo de datos en el pen drive</h3></div><div class="bd">
       <p class="ayuda" style="margin-top:0">Todos los datos —legajos, fotografías y organigrama— viven en un
       único documento: <span class="mono">datos-personal.json</span>, ubicado junto a este archivo HTML.
@@ -728,10 +816,74 @@ function cargar(){
   if(!ESTADO.org) ESTADO.org = clonar(ORG_SEMILLA);
 }
 
+/* IndexedDB: copia completa (con fotografías) sin el límite de ~5 MB de localStorage.
+   Indispensable en celulares, donde no existe acceso directo al archivo del pen drive. */
+const IDB = {
+  db:null,
+  abrir(){
+    return this.db ||= new Promise((ok,ko)=>{
+      const r = indexedDB.open("board_fdr", 1);
+      r.onupgradeneeded = ()=>r.result.createObjectStore("datos");
+      r.onsuccess = ()=>ok(r.result);
+      r.onerror = ()=>ko(r.error);
+    });
+  },
+  async leer(){
+    const db = await this.abrir();
+    return new Promise((ok,ko)=>{
+      const q = db.transaction("datos").objectStore("datos").get(CLAVE);
+      q.onsuccess = ()=>ok(q.result||null); q.onerror = ()=>ko(q.error);
+    });
+  },
+  async escribir(v){
+    const db = await this.abrir();
+    return new Promise((ok,ko)=>{
+      const t = db.transaction("datos","readwrite");
+      t.objectStore("datos").put(v, CLAVE);
+      t.oncomplete = ()=>ok(); t.onerror = ()=>ko(t.error);
+    });
+  }
+};
+let idbListo = false;
+let guardarIdbPendiente = null;
+
+async function restaurarIDB(){
+  if(!("indexedDB" in window)) return;
+  try{
+    const d = await IDB.leer();
+    idbListo = true;
+    let ls = null;
+    try{ ls = JSON.parse(localStorage.getItem(CLAVE)||"null"); }catch(e){}
+    if(d && Array.isArray(d.personal)){
+      const lsMasNuevo = ls && (ls.generado||"") > (d.generado||"");
+      if(!lsMasNuevo){
+        ESTADO.personal = d.personal;
+        if(d.org) ESTADO.org = d.org;
+      }else if(ls.sinFotos){
+        const fotos = new Map(d.personal.filter(p=>p.foto).map(p=>[p.id,p.foto]));
+        ESTADO.personal.forEach(p=>{ if(!p.foto && fotos.has(p.id)) p.foto = fotos.get(p.id); });
+        guardar();
+      }else guardar();
+      pintarTodo();
+    }else if(ESTADO.personal.length){
+      guardar();
+    }
+    if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+  }catch(e){
+    console.warn("IndexedDB no disponible:", e);
+  }
+}
+
 let guardarPendiente = null;
 let avisoCupo = false;
 function guardar(){
   const paquete = {v:1, generado:new Date().toISOString(), personal:ESTADO.personal, org:ESTADO.org, tema:ESTADO.tema};
+  if(idbListo){
+    clearTimeout(guardarIdbPendiente);
+    guardarIdbPendiente = setTimeout(()=>IDB.escribir(paquete).catch(e=>{
+      console.warn(e); toast("No se pudo guardar en el almacenamiento interno. Descargue el JSON.");
+    }), 400);
+  }
   try{
     localStorage.setItem(CLAVE, JSON.stringify(paquete));
   }catch(e){
@@ -740,7 +892,7 @@ function guardar(){
     try{
       localStorage.setItem(CLAVE, JSON.stringify({...paquete, sinFotos:true,
         personal: ESTADO.personal.map(p=>p.foto? {...p, foto:""} : p)}));
-      if(!avisoCupo){
+      if(!avisoCupo && !idbListo){
         avisoCupo = true;
         toast(manejadorArchivo
           ? "Las fotografías superan el cupo del navegador: se conservan en el documento de datos."
@@ -748,7 +900,7 @@ function guardar(){
       }
     }catch(e2){
       console.warn(e2);
-      toast("El navegador no admite más datos. Abra o descargue el documento de datos.");
+      if(!idbListo) toast("El navegador no admite más datos. Abra o descargue el documento de datos.");
     }
   }
   if(manejadorArchivo){
@@ -2062,12 +2214,13 @@ function pintarAlmacen(){
     <dt>Dependencias en el organigrama</dt><dd>${orgPlano().length}</dd>
     <dt>Copia de trabajo en el navegador</dt><dd>${(bytes/1024).toFixed(1)} KB (el cupo varía según el equipo, habitualmente entre 5.000 y 10.000 KB)</dd>
     ${(()=>{ try{ const d=JSON.parse(localStorage.getItem(CLAVE)||"{}");
-        return d.sinFotos? '<dt>Copia del navegador</dt><dd style="color:var(--warn)">Guardada sin fotografías por falta de cupo; las imágenes viven en el documento de datos</dd>':""; }catch(e){ return ""; } })()}
+        return d.sinFotos && !idbListo? '<dt>Copia del navegador</dt><dd style="color:var(--warn)">Guardada sin fotografías por falta de cupo; las imágenes viven en el documento de datos</dd>':""; }catch(e){ return ""; } })()}
+    <dt>Almacenamiento interno (IndexedDB)</dt><dd>${idbListo? "Activo — copia completa con fotografías, apta para celular" : "No disponible en este navegador"}</dd>
     <dt>Documento de datos</dt><dd>${manejadorArchivo? esc(manejadorArchivo.name)+" — abierto, guardado automático" : "No abierto (los cambios sólo quedan en este navegador)"}</dd>
   </dl>
   <p class="ayuda" style="margin-top:12px">Recomendación: mantener abierto el documento de datos durante toda la
   jornada y conservar una copia del JSON fuera del pen drive.
-  ${ESTADO.personal.length>150 && !manejadorArchivo
+  ${ESTADO.personal.length>150 && !manejadorArchivo && !idbListo
     ? '<b style="color:var(--warn)">Con más de 150 legajos con fotografía el almacenamiento del navegador resulta insuficiente: se deberá trabajar con el documento de datos abierto (Chrome o Edge) o descargar el JSON periódicamente.</b>'
     : ""}</p>`;
 }
@@ -2333,8 +2486,16 @@ function iniciar(){
     };
   }
 
+  /* Filtros plegables en celular */
+  $("#btnFiltros").onclick = ()=>{
+    const abiertos = $(".filtros").classList.toggle("abiertos");
+    $("#btnFiltros").setAttribute("aria-expanded", abiertos);
+    $("#btnFiltros").textContent = abiertos? "Ocultar" : "Filtros";
+  };
+
   ESTADO.nodoSel = "fdr";
   pintarTodo();
+  restaurarIDB().then(pintarAlmacen);
 }
 
 document.addEventListener("DOMContentLoaded", iniciar);
