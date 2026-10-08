@@ -2038,27 +2038,27 @@ function exportarJson(){
 const MB = n => (n/1048576).toFixed(1).replace(".",",")+" MB";
 const esQr = k => /qr/i.test(k);
 function tamanoDatos(){
-  const porCampo = {}; let total = 0;
+  const porCampo = {}, cant = {}; let total = 0, imgs = 0;
   ESTADO.personal.forEach(p=>Object.keys(p).forEach(k=>{
     const v = p[k]; if(typeof v!=="string") return;
     total += v.length;
-    if(v.startsWith("data:image/")) porCampo[k] = (porCampo[k]||0) + v.length;
+    if(v.startsWith("data:image/")){ porCampo[k] = (porCampo[k]||0) + v.length; cant[k] = (cant[k]||0)+1; imgs += v.length; }
   }));
-  return {total, porCampo};
+  return {total, porCampo, cant, texto: total-imgs};
 }
 function pintarTamano(){
   const el = $("#estadoTamano"); if(!el) return;
-  const {total, porCampo} = tamanoDatos();
+  const {total, porCampo, cant, texto} = tamanoDatos();
   const nombres = {foto:"fotografías", qr:"códigos QR", fotoDni:"fotos de DNI"};
   const det = Object.entries(porCampo).sort((a,b)=>b[1]-a[1])
-    .map(([k,v])=>(nombres[k]||k)+" "+MB(v)).join(" · ");
-  el.innerHTML = "Tamaño aproximado: <b>"+MB(total)+"</b>"+(det? " — "+esc(det) : "")+
+    .map(([k,v])=>(nombres[k]||k)+" "+MB(v)+" ("+cant[k]+")").concat(["texto "+MB(texto)]).join(" · ");
+  el.innerHTML = ESTADO.personal.length+" legajos. Tamaño aproximado: <b>"+MB(total)+"</b>"+(det? " — "+esc(det) : "")+
     (total>15*1048576? '<br><span style="color:var(--warn)">Supera el límite para guardar en Google Drive (16 MB): conviene compactar.</span>' : "");
 }
 function cargarImg(src){
   return new Promise((ok,ko)=>{ const im = new Image(); im.onload = ()=>ok(im); im.onerror = ko; im.src = src; });
 }
-async function recomprimir(src, max, q){
+async function recomprimir(src, max, q, gris){
   const im = await cargarImg(src);
   const k = Math.min(1, max/Math.max(im.width, im.height));
   const cv = document.createElement("canvas");
@@ -2066,38 +2066,58 @@ async function recomprimir(src, max, q){
   const cx = cv.getContext("2d");
   cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height);   /* PNG transparente -> fondo blanco */
   cx.drawImage(im, 0, 0, cv.width, cv.height);
+  if(gris){
+    const d = cx.getImageData(0, 0, cv.width, cv.height), a = d.data;
+    for(let i=0; i<a.length; i+=4){ const y = (a[i]*299 + a[i+1]*587 + a[i+2]*114)/1000; a[i]=a[i+1]=a[i+2]=y; }
+    cx.putImageData(d, 0, 0);
+  }
   const out = cv.toDataURL("image/jpeg", q);
   return out.length < src.length ? out : src;
 }
+/* Niveles crecientes: se aplica el siguiente solo si el total sigue por encima de la meta.
+   Probado: los QR se siguen leyendo hasta 340 px. */
+const META_BYTES = 14*1048576;
+const NIVELES_COMP = [
+  {foto:{lim:25000,max:240,q:0.72}, qr:{lim:45000,max:480,q:0.70}, otra:{lim:35000,max:320,q:0.70}},
+  {foto:{lim:14000,max:200,q:0.62}, qr:{lim:30000,max:400,q:0.55}, otra:{lim:22000,max:300,q:0.60}},
+  {foto:{lim:9000, max:160,q:0.55}, qr:{lim:20000,max:340,q:0.45}, otra:{lim:16000,max:280,q:0.50}},
+  {foto:{lim:7000, max:140,q:0.50}, qr:{lim:15000,max:300,q:0.40,gris:true}, otra:{lim:12000,max:260,q:0.45}}
+];
 async function compactarImagenes(){
   const btn = $("#btnCompactar"), est = $("#estadoCompactar");
   const antes = tamanoDatos().total;
   btn.disabled = true;
-  let hechas = 0, fallas = 0;
+  let hechas = 0, fallas = 0, nivelUsado = 0;
   try{
     const P = ESTADO.personal;
-    for(let i=0; i<P.length; i++){
-      const p = P[i];
-      for(const k of Object.keys(p)){
-        const v = p[k];
-        if(typeof v!=="string" || !v.startsWith("data:image/")) continue;
-        const t = k==="foto"? {lim:25000, max:240, q:0.72} : esQr(k)? {lim:45000, max:480, q:0.7} : {lim:35000, max:320, q:0.7};
-        if(v.length <= t.lim) continue;                               /* ya está en tamaño estándar */
-        try{
-          const nv = await recomprimir(v, t.max, t.q);
-          if(nv!==v){ p[k] = nv; hechas++; }
-        }catch(e){ fallas++; console.warn("Imagen no legible:", p.apellido, k, e); }
-      }
-      if(i%10===0){
-        est.textContent = "Compactando… legajo "+(i+1)+" de "+P.length+" ("+hechas+" imágenes reducidas)";
-        await new Promise(r=>setTimeout(r,0));
+    for(let n=0; n<NIVELES_COMP.length; n++){
+      if(n>0 && tamanoDatos().total <= META_BYTES) break;
+      nivelUsado = n+1;
+      const N = NIVELES_COMP[n];
+      for(let i=0; i<P.length; i++){
+        const p = P[i];
+        for(const k of Object.keys(p)){
+          const v = p[k];
+          if(typeof v!=="string" || !v.startsWith("data:image/")) continue;
+          const t = k==="foto"? N.foto : esQr(k)? N.qr : N.otra;
+          if(v.length <= t.lim) continue;
+          try{
+            const nv = await recomprimir(v, t.max, t.q, t.gris);
+            if(nv!==v){ p[k] = nv; hechas++; }
+          }catch(e){ if(n===0){ fallas++; console.warn("Imagen no legible:", p.apellido, k, e); } }
+        }
+        if(i%10===0){
+          est.textContent = "Compactando (nivel "+(n+1)+")… legajo "+(i+1)+" de "+P.length+" · "+MB(tamanoDatos().total);
+          await new Promise(r=>setTimeout(r,0));
+        }
       }
     }
     guardar(); pintarTodo();
     const despues = tamanoDatos().total;
-    est.innerHTML = "Listo: <b>"+hechas+"</b> imágenes reducidas. Tamaño: "+MB(antes)+" → <b>"+MB(despues)+"</b>"+
+    est.innerHTML = "Listo (nivel "+nivelUsado+"): <b>"+hechas+"</b> reducciones. Tamaño: "+MB(antes)+" → <b>"+MB(despues)+"</b>"+
       (fallas? " · "+fallas+" imagen(es) no se pudieron leer y quedaron igual." : "")+
-      "<br>Ya se puede usar «Guardar en Google Drive».";
+      (despues <= 15*1048576 ? "<br>Ya se puede usar «Guardar en Google Drive»."
+        : '<br><span style="color:var(--warn)">Sigue por encima de 15 MB: se usará «Descargar JSON completo».</span>');
     toast("Imágenes compactadas: "+MB(antes)+" → "+MB(despues));
   }finally{
     btn.disabled = false;
@@ -2132,7 +2152,8 @@ async function guardarEnDrive(){
     const titulo = "datos-personal "+sello()+".json";
     const txt = JSON.stringify({v:1,generado:new Date().toISOString(),personal:ESTADO.personal,org:ESTADO.org},null,1);
     if(txt.length > 15.5*1048576){
-      est.textContent = "El archivo pesa "+MB(txt.length)+" y Drive admite hasta 16 MB desde aquí. Primero se usará «Compactar imágenes».";
+      pintarTamano();
+      est.textContent = "El archivo pesa "+MB(txt.length)+" y Drive admite hasta 16 MB desde aquí. Primero se usará «Compactar imágenes» (tarjeta «Tamaño de los datos», más abajo).";
       return;
     }
     est.textContent = "Subiendo "+(txt.length/1048576).toFixed(1)+" MB a Google Drive…";
