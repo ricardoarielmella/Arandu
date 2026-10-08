@@ -2436,6 +2436,10 @@ function cargarDemo(){
    13. EVENTOS E INICIALIZACION
    ============================================================ */
 function pintarTodo(){
+  /* Legajos sin identificador (cargados por otras vías) no se pueden abrir ni eliminar: se les asigna uno. */
+  let sinId = 0;
+  ESTADO.personal.forEach(p=>{ if(!p.id){ p.id = uid(); sinId++; } });
+  if(sinId) guardar();
   iniciarFiltros();
   pintarTablero(); pintarPersonal(); pintarArbol(); pintarDetalleOrg(); pintarPlanillas(); pintarAlmacen();
 }
