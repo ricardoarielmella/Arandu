@@ -566,8 +566,8 @@ tfoot td{font-weight:700;background:var(--panel2)}
       <div class="row" style="margin-top:10px">
         <button class="btn pri" id="btnCompactar">Compactar imágenes</button>
       </div>
-      <p class="ayuda" style="margin-top:10px" id="estadoCompactar">Reduce las fotos a 240 px, los DNI a 320 px y los QR a 480 px.
-      Solo se tocan las imágenes más grandes de lo necesario; los datos de texto no cambian.</p>
+      <p class="ayuda" style="margin-top:10px" id="estadoCompactar">Lleva las fotos al mínimo (120 px) y conserva QR y DNI
+      legibles (QR 480 px en grises, DNI 320 px). Los datos de texto no cambian.</p>
     </div></div>
 
     <div class="card"><div class="hd"><h3>Carga inicial y limpieza</h3></div><div class="bd">
@@ -1506,7 +1506,7 @@ function abrirLegajo(id){
       <div style="flex:1">
         <div class="row"><button class="btn sm" id="btnFoto">Cargar fotografía</button>
           <button class="btn sm" id="btnFotoDel">Quitar</button></div>
-        <p class="ayuda" style="margin:8px 0 0">La imagen se reduce a 320 px y se almacena dentro del propio
+        <p class="ayuda" style="margin:8px 0 0">La imagen se reduce a 120 px y se almacena dentro del propio
         archivo de datos, de modo que la ficha viaja completa en el pen drive.</p>
         <input type="file" id="fotoIn" accept="image/*" style="display:none">
       </div>
@@ -1671,11 +1671,11 @@ function abrirLegajo(id){
     fr.onload = ev=>{
       const im = new Image();
       im.onload = ()=>{
-        const max=320, k=Math.min(1,max/Math.max(im.width,im.height));
+        const max=120, k=Math.min(1,max/Math.max(im.width,im.height));
         const cv=document.createElement("canvas");
         cv.width=Math.round(im.width*k); cv.height=Math.round(im.height*k);
         cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);
-        ponerFoto(cv.toDataURL("image/jpeg",0.78));
+        ponerFoto(cv.toDataURL("image/jpeg",0.6));
       };
       im.src = ev.target.result;
     };
@@ -2074,14 +2074,12 @@ async function recomprimir(src, max, q, gris){
   const out = cv.toDataURL("image/jpeg", q);
   return out.length < src.length ? out : src;
 }
-/* Niveles crecientes: se aplica el siguiente solo si el total sigue por encima de la meta.
-   Probado: los QR se siguen leyendo hasta 340 px. */
+/* La foto va al mínimo; QR y DNI priorizan legibilidad: el segundo nivel solo actúa si el total
+   sigue por encima de la meta, y nunca baja de 420 px (QR) ni 320 px (DNI). */
 const META_BYTES = 14*1048576;
 const NIVELES_COMP = [
-  {foto:{lim:25000,max:240,q:0.72}, qr:{lim:45000,max:480,q:0.70}, otra:{lim:35000,max:320,q:0.70}},
-  {foto:{lim:14000,max:200,q:0.62}, qr:{lim:30000,max:400,q:0.55}, otra:{lim:22000,max:300,q:0.60}},
-  {foto:{lim:9000, max:160,q:0.55}, qr:{lim:20000,max:340,q:0.45}, otra:{lim:16000,max:280,q:0.50}},
-  {foto:{lim:7000, max:140,q:0.50}, qr:{lim:15000,max:300,q:0.40,gris:true}, otra:{lim:12000,max:260,q:0.45}}
+  {foto:{lim:5000,max:120,q:0.50}, qr:{lim:45000,max:480,q:0.70,gris:true}, otra:{lim:35000,max:320,q:0.70}},
+  {foto:{lim:3500,max:96, q:0.45}, qr:{lim:38000,max:420,q:0.62,gris:true}, otra:{lim:30000,max:320,q:0.60}}
 ];
 async function compactarImagenes(){
   const btn = $("#btnCompactar"), est = $("#estadoCompactar");
@@ -2581,7 +2579,7 @@ function iniciar(){
   $("#btnCompactar").onclick = ()=>{
     if(!ESTADO.personal.length){ toast("No hay legajos cargados."); return; }
     confirmar("Compactar imágenes",
-      "Se reducirán las imágenes más grandes de lo necesario (fotos a 240 px, DNI a 320 px, QR a 480 px). El cambio no se puede deshacer en este dispositivo; el archivo original sigue intacto en Drive.",
+      "Las fotos se llevarán al mínimo (120 px); QR y DNI solo se reducirán lo indispensable para que sigan legibles. El cambio no se puede deshacer en este dispositivo; el archivo original sigue intacto en Drive.",
       compactarImagenes);
   };
   usarCap("mcp").then(m=>{ if(m) $("#btnDrive").style.display = ""; });
