@@ -545,6 +545,7 @@ tfoot td{font-weight:700;background:var(--panel2)}
         <button class="btn pri" id="btnDrive" style="display:none">Guardar en Google Drive</button>
         <button class="btn" id="btnExpJson">Descargar JSON completo</button>
         <button class="btn" id="btnExpCsv">Descargar CSV</button>
+        <button class="btn" id="btnExpRevision">Descargar sin imágenes (revisión)</button>
       </div>
       <p class="ayuda" id="estadoDrive" style="margin-top:10px"></p>
       <p class="ayuda" style="margin-top:10px">El JSON incluye fotografías y la estructura del organigrama.
@@ -2205,6 +2206,22 @@ async function compactarImagenes(){
   }
 }
 
+/* Copia liviana para revisión: las imágenes se reemplazan por una marca con su tamaño.
+   No sirve como respaldo y la importación la rechaza. */
+function exportarRevision(){
+  const P = ESTADO.personal.map(p=>{
+    const o = {};
+    for(const k of Object.keys(p)){
+      const v = p[k];
+      o[k] = (typeof v==="string" && v.startsWith("data:image/"))? "[imagen "+Math.round(v.length/1024)+" KB]" : v;
+    }
+    return o;
+  });
+  descargar("revision-"+sello().replace(" ","-")+".json",
+    JSON.stringify({v:1, revision:true, generado:new Date().toISOString(), personal:P, org:ESTADO.org}, null, 1),
+    "application/json");
+}
+
 const DRIVE = "Google Drive";
 function sello(){
   const d = new Date(), z = n=>String(n).padStart(2,"0");
@@ -2663,6 +2680,7 @@ function iniciar(){
   /* Datos */
   $("#btnExpJson").onclick = exportarJson;
   $("#btnDrive").onclick = guardarEnDrive;
+  $("#btnExpRevision").onclick = exportarRevision;
   $("#btnCompactar").onclick = ()=>{
     if(!ESTADO.personal.length){ toast("No hay legajos cargados."); return; }
     confirmar("Compactar imágenes",
@@ -2684,6 +2702,7 @@ function iniciar(){
         if(modoImp==="csv" || /\.csv$/i.test(f.name)) return importarCsv(txt);
         const d = JSON.parse(txt);
         if(!Array.isArray(d.personal)) throw new Error("formato");
+        if(d.revision){ toast("Ese archivo es una copia de revisión sin imágenes: no se importa."); return; }
         if(modoImp==="reemplazar"){
           ESTADO.personal = d.personal; if(d.org) ESTADO.org = d.org;
         }else{
@@ -2716,7 +2735,7 @@ function iniciar(){
   $("#btnGuardarArch").disabled = !soportaFS;
 
   function aplicarPaquete(d, nombre){
-    if(!d || !Array.isArray(d.personal)) throw new Error("formato");
+    if(!d || !Array.isArray(d.personal) || d.revision) throw new Error("formato");
     ESTADO.personal = d.personal;
     if(d.org) ESTADO.org = d.org;
     ESTADO.nodoSel = null;
