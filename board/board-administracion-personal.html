@@ -561,6 +561,15 @@ tfoot td{font-weight:700;background:var(--panel2)}
       <p class="ayuda" style="margin-top:10px">La fusión conserva los legajos existentes y agrega/actualiza por DNI.</p>
     </div></div>
 
+    <div class="card"><div class="hd"><h3>Tamaño de los datos</h3></div><div class="bd">
+      <p class="ayuda" style="margin-top:0" id="estadoTamano"></p>
+      <div class="row" style="margin-top:10px">
+        <button class="btn pri" id="btnCompactar">Compactar imágenes</button>
+      </div>
+      <p class="ayuda" style="margin-top:10px" id="estadoCompactar">Reduce las fotos a 240 px, los DNI a 320 px y los QR a 480 px.
+      Solo se tocan las imágenes más grandes de lo necesario; los datos de texto no cambian.</p>
+    </div></div>
+
     <div class="card"><div class="hd"><h3>Carga inicial y limpieza</h3></div><div class="bd">
       <div class="row">
         <button class="btn" id="btnDemo">Cargar 24 legajos de ejemplo</button>
@@ -2025,6 +2034,76 @@ function exportarJson(){
     "application/json");
 }
 
+/* ---------- Tamaño y compactación de imágenes ---------- */
+const MB = n => (n/1048576).toFixed(1).replace(".",",")+" MB";
+const esQr = k => /qr/i.test(k);
+function tamanoDatos(){
+  const porCampo = {}; let total = 0;
+  ESTADO.personal.forEach(p=>Object.keys(p).forEach(k=>{
+    const v = p[k]; if(typeof v!=="string") return;
+    total += v.length;
+    if(v.startsWith("data:image/")) porCampo[k] = (porCampo[k]||0) + v.length;
+  }));
+  return {total, porCampo};
+}
+function pintarTamano(){
+  const el = $("#estadoTamano"); if(!el) return;
+  const {total, porCampo} = tamanoDatos();
+  const nombres = {foto:"fotografías", qr:"códigos QR", fotoDni:"fotos de DNI"};
+  const det = Object.entries(porCampo).sort((a,b)=>b[1]-a[1])
+    .map(([k,v])=>(nombres[k]||k)+" "+MB(v)).join(" · ");
+  el.innerHTML = "Tamaño aproximado: <b>"+MB(total)+"</b>"+(det? " — "+esc(det) : "")+
+    (total>15*1048576? '<br><span style="color:var(--warn)">Supera el límite para guardar en Google Drive (16 MB): conviene compactar.</span>' : "");
+}
+function cargarImg(src){
+  return new Promise((ok,ko)=>{ const im = new Image(); im.onload = ()=>ok(im); im.onerror = ko; im.src = src; });
+}
+async function recomprimir(src, max, q){
+  const im = await cargarImg(src);
+  const k = Math.min(1, max/Math.max(im.width, im.height));
+  const cv = document.createElement("canvas");
+  cv.width = Math.max(1, Math.round(im.width*k)); cv.height = Math.max(1, Math.round(im.height*k));
+  const cx = cv.getContext("2d");
+  cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height);   /* PNG transparente -> fondo blanco */
+  cx.drawImage(im, 0, 0, cv.width, cv.height);
+  const out = cv.toDataURL("image/jpeg", q);
+  return out.length < src.length ? out : src;
+}
+async function compactarImagenes(){
+  const btn = $("#btnCompactar"), est = $("#estadoCompactar");
+  const antes = tamanoDatos().total;
+  btn.disabled = true;
+  let hechas = 0, fallas = 0;
+  try{
+    const P = ESTADO.personal;
+    for(let i=0; i<P.length; i++){
+      const p = P[i];
+      for(const k of Object.keys(p)){
+        const v = p[k];
+        if(typeof v!=="string" || !v.startsWith("data:image/")) continue;
+        const t = k==="foto"? {lim:25000, max:240, q:0.72} : esQr(k)? {lim:45000, max:480, q:0.7} : {lim:35000, max:320, q:0.7};
+        if(v.length <= t.lim) continue;                               /* ya está en tamaño estándar */
+        try{
+          const nv = await recomprimir(v, t.max, t.q);
+          if(nv!==v){ p[k] = nv; hechas++; }
+        }catch(e){ fallas++; console.warn("Imagen no legible:", p.apellido, k, e); }
+      }
+      if(i%10===0){
+        est.textContent = "Compactando… legajo "+(i+1)+" de "+P.length+" ("+hechas+" imágenes reducidas)";
+        await new Promise(r=>setTimeout(r,0));
+      }
+    }
+    guardar(); pintarTodo();
+    const despues = tamanoDatos().total;
+    est.innerHTML = "Listo: <b>"+hechas+"</b> imágenes reducidas. Tamaño: "+MB(antes)+" → <b>"+MB(despues)+"</b>"+
+      (fallas? " · "+fallas+" imagen(es) no se pudieron leer y quedaron igual." : "")+
+      "<br>Ya se puede usar «Guardar en Google Drive».";
+    toast("Imágenes compactadas: "+MB(antes)+" → "+MB(despues));
+  }finally{
+    btn.disabled = false;
+  }
+}
+
 const DRIVE = "Google Drive";
 function sello(){
   const d = new Date(), z = n=>String(n).padStart(2,"0");
@@ -2052,6 +2131,10 @@ async function guardarEnDrive(){
     }catch(e){ console.warn("Búsqueda en Drive:", e); }
     const titulo = "datos-personal "+sello()+".json";
     const txt = JSON.stringify({v:1,generado:new Date().toISOString(),personal:ESTADO.personal,org:ESTADO.org},null,1);
+    if(txt.length > 15.5*1048576){
+      est.textContent = "El archivo pesa "+MB(txt.length)+" y Drive admite hasta 16 MB desde aquí. Primero se usará «Compactar imágenes».";
+      return;
+    }
     est.textContent = "Subiendo "+(txt.length/1048576).toFixed(1)+" MB a Google Drive…";
     const entrada = {title:titulo, contentMimeType:"application/json", disableConversionToGoogleType:true,
       base64Content:{$file:{data:new Blob([txt],{type:"application/json"}), name:"datos-personal.json", type:"application/json"}}};
@@ -2275,6 +2358,7 @@ function pedirTexto(titulo, etiqueta, valor, alAceptar){
     $("#mAviso").classList.remove("on"); alAceptar(v); };
 }
 function pintarAlmacen(){
+  pintarTamano();
   let bytes = 0;
   try{ bytes = (localStorage.getItem(CLAVE)||"").length*2; }catch(e){}
   const fotos = ESTADO.personal.filter(p=>p.foto).length;
@@ -2473,6 +2557,12 @@ function iniciar(){
   /* Datos */
   $("#btnExpJson").onclick = exportarJson;
   $("#btnDrive").onclick = guardarEnDrive;
+  $("#btnCompactar").onclick = ()=>{
+    if(!ESTADO.personal.length){ toast("No hay legajos cargados."); return; }
+    confirmar("Compactar imágenes",
+      "Se reducirán las imágenes más grandes de lo necesario (fotos a 240 px, DNI a 320 px, QR a 480 px). El cambio no se puede deshacer en este dispositivo; el archivo original sigue intacto en Drive.",
+      compactarImagenes);
+  };
   usarCap("mcp").then(m=>{ if(m) $("#btnDrive").style.display = ""; });
   $("#btnExpCsv").onclick  = ()=>exportarCsv(ESTADO.personal);
   let modoImp = "reemplazar";
