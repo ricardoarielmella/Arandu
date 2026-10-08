@@ -562,6 +562,15 @@ tfoot td{font-weight:700;background:var(--panel2)}
       <p class="ayuda" style="margin-top:10px">La fusión conserva los legajos existentes y agrega/actualiza por DNI.</p>
     </div></div>
 
+    <div class="card"><div class="hd"><h3>Datos para los PDF</h3></div><div class="bd">
+      <div class="row">
+        <button class="btn pri" id="btnPdf1">PDF 1 — fotos de DNI</button>
+        <button class="btn pri" id="btnPdf2">PDF 2 — grado, nombre y QR</button>
+      </div>
+      <p class="ayuda" style="margin-top:10px" id="estadoPdf">Cada botón descarga un archivo liviano, ordenado por apellido
+      y nombre, para adjuntar en el chat con Claude. Si supera los 24 MB se divide en partes.</p>
+    </div></div>
+
     <div class="card"><div class="hd"><h3>Tamaño de los datos</h3></div><div class="bd">
       <p class="ayuda" style="margin-top:0" id="estadoTamano"></p>
       <div class="row" style="margin-top:10px">
@@ -2222,6 +2231,37 @@ function exportarRevision(){
     "application/json");
 }
 
+/* Archivos para armar los PDF: 1 = foto del DNI, 2 = QR. Se marcan como revisión para que no se importen. */
+const PARTE_MAX = 24*1048576;
+async function exportarParaPdf(tipo){
+  const campo = tipo===1? "fotoDni" : "qr";
+  const img = v => (typeof v==="string" && v.startsWith("data:image/"))? v : "";
+  const filas = ESTADO.personal.map(p=>{
+    const f = {id:p.id, grado:p.grado||"", apellido:p.apellido||"", nombre:p.nombre||"", dni:p.dni||"",
+               lista:p.lista||"", destino:p.destino||""};
+    f[campo] = img(p[campo]);
+    if(tipo===2) f.qrTexto = p.qrTexto||"";
+    return f;
+  }).sort((a,b)=>(a.apellido+" "+a.nombre).localeCompare(b.apellido+" "+b.nombre, "es", {sensitivity:"base"}));
+  const partes = []; let actual = [], peso = 0;
+  filas.forEach(f=>{
+    const t = JSON.stringify(f).length;
+    if(actual.length && peso+t > PARTE_MAX){ partes.push(actual); actual = []; peso = 0; }
+    actual.push(f); peso += t;
+  });
+  if(actual.length) partes.push(actual);
+  const est = $("#estadoPdf"), s = sello().replace(" ","-");
+  for(let i=0; i<partes.length; i++){
+    const nombre = "pdf-"+tipo+"-"+s+(partes.length>1? "-parte-"+(i+1)+"-de-"+partes.length : "")+".json";
+    est.textContent = "Preparando "+nombre+"…";
+    await descargar(nombre, JSON.stringify({v:1, revision:true, pdf:tipo, parte:i+1, partes:partes.length,
+      generado:new Date().toISOString(), personal:partes[i]}), "application/json");
+  }
+  const conImg = filas.filter(f=>f[campo]).length;
+  est.textContent = "PDF "+tipo+": "+filas.length+" legajos, "+conImg+" con "+(tipo===1? "foto de DNI" : "QR")+
+    (partes.length>1? ", en "+partes.length+" partes." : ".");
+}
+
 const DRIVE = "Google Drive";
 function sello(){
   const d = new Date(), z = n=>String(n).padStart(2,"0");
@@ -2681,6 +2721,8 @@ function iniciar(){
   $("#btnExpJson").onclick = exportarJson;
   $("#btnDrive").onclick = guardarEnDrive;
   $("#btnExpRevision").onclick = exportarRevision;
+  $("#btnPdf1").onclick = ()=>exportarParaPdf(1);
+  $("#btnPdf2").onclick = ()=>exportarParaPdf(2);
   $("#btnCompactar").onclick = ()=>{
     if(!ESTADO.personal.length){ toast("No hay legajos cargados."); return; }
     confirmar("Compactar imágenes",
@@ -2702,7 +2744,7 @@ function iniciar(){
         if(modoImp==="csv" || /\.csv$/i.test(f.name)) return importarCsv(txt);
         const d = JSON.parse(txt);
         if(!Array.isArray(d.personal)) throw new Error("formato");
-        if(d.revision){ toast("Ese archivo es una copia de revisión sin imágenes: no se importa."); return; }
+        if(d.revision){ toast("Ese archivo es una copia de revisión o para PDF, no un respaldo: no se importa."); return; }
         if(modoImp==="reemplazar"){
           ESTADO.personal = d.personal; if(d.org) ESTADO.org = d.org;
         }else{
