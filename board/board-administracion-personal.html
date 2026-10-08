@@ -568,7 +568,7 @@ tfoot td{font-weight:700;background:var(--panel2)}
         <button class="btn pri" id="btnPdf2">PDF 2 — grado, nombre y QR</button>
       </div>
       <p class="ayuda" style="margin-top:10px" id="estadoPdf">Cada botón descarga un archivo liviano, ordenado por apellido
-      y nombre, para adjuntar en el chat con Claude. Si supera los 24 MB se divide en partes.</p>
+      y nombre, para adjuntar en el chat con Claude. No incluye conductores ni personal en modo aéreo. Si supera los 24 MB se divide en partes.</p>
     </div></div>
 
     <div class="card"><div class="hd"><h3>Tamaño de los datos</h3></div><div class="bd">
@@ -2236,7 +2236,18 @@ const PARTE_MAX = 24*1048576;
 async function exportarParaPdf(tipo){
   const campo = tipo===1? "fotoDni" : "qr";
   const img = v => (typeof v==="string" && v.startsWith("data:image/"))? v : "";
-  const filas = ESTADO.personal.map(p=>{
+  /* Fuera de los PDF: lista de conductores y quienes viajan en modo aéreo
+     (vehículo "MODO AÉREO", o sin vehículo y con destino de Aviación de Ejército). */
+  const aereo = p => { const veh = String(p.vehiculoMarcha||p.vehiculo||"");
+    return /MODO\s*A/i.test(veh) || (!veh.trim() && /(^|\s)Av(\s|$)|Heli|Aeron/i.test(p.destino||"")); };
+  const conductor = p => String(p.lista||"").trim().toLowerCase()==="conductor";
+  const excl = {aereo:0, conductor:0};
+  const incluidos = ESTADO.personal.filter(p=>{
+    if(conductor(p)){ excl.conductor++; return false; }
+    if(aereo(p)){ excl.aereo++; return false; }
+    return true;
+  });
+  const filas = incluidos.map(p=>{
     const f = {id:p.id, grado:p.grado||"", apellido:p.apellido||"", nombre:p.nombre||"", dni:p.dni||"",
                lista:p.lista||"", destino:p.destino||""};
     f[campo] = img(p[campo]);
@@ -2259,7 +2270,8 @@ async function exportarParaPdf(tipo){
   }
   const conImg = filas.filter(f=>f[campo]).length;
   est.textContent = "PDF "+tipo+": "+filas.length+" legajos, "+conImg+" con "+(tipo===1? "foto de DNI" : "QR")+
-    (partes.length>1? ", en "+partes.length+" partes." : ".");
+    (partes.length>1? ", en "+partes.length+" partes" : "")+
+    ". Quedaron afuera "+excl.conductor+" conductores y "+excl.aereo+" de modo aéreo.";
 }
 
 const DRIVE = "Google Drive";
